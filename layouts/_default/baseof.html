@@ -19,7 +19,7 @@
 </head>
 <body>
   <button class="dark-mode-toggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
-    <span id="mode-icon">●</span>
+    <span id="mode-icon">☾</span>
   </button>
   
   {{ block "main" . }}{{ end }}
@@ -28,13 +28,13 @@
     const currentTheme = localStorage.getItem('theme') || 'light';
     if (currentTheme === 'dark') {
       document.body.classList.add('dark-mode');
-      document.getElementById('mode-icon').textContent = '○';
+      document.getElementById('mode-icon').textContent = '☀';
     }
     
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
       const isDark = document.body.classList.contains('dark-mode');
-      document.getElementById('mode-icon').textContent = isDark ? '○' : '●';
+      document.getElementById('mode-icon').textContent = isDark ? '☀' : '☾';
       localStorage.setItem('theme', isDark ? 'dark' : 'light');
     }
   </script>
