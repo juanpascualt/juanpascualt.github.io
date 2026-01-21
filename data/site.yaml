@@ -1,0 +1,45 @@
+name: "Juan Pascual"
+position: "PhD Candidate"
+affiliation: "University of Barcelona"
+location: "Barcelona, Spain"
+email: "juanpascual@ub.edu"
+photo: "/img/photo.jpg"
+cv: "/pdf/cv.pdf"
+
+intro:
+  - "I’m a PhD candidate in Economics at University of Barcelona (UB)."
+  - "I work on questions in Education, Crime and Public Economics. I study educational settings which affect early life trajectories through exposure to different learning environments."
+
+links:
+  - label: "Work in Progress"
+    href: "#workinprogress"
+  - label: "Teaching"
+    href: "#teaching"
+
+work_in_progress:
+  - title: "From Detention to Prevention: Firm-Based Vocational Education and Crime"
+    coauthors:
+      - name: "Daniel Montolio"
+        url: "https://sites.google.com/site/danielmontolio2/"
+      - name: "Jenifer Ruiz Valenzuela"
+        url: "https://sites.google.com/site/ruizvalenjenifer/"
+
+    abstract: >
+      This paper examines the impact of an innovative firm-based vocational training program (DVT) on youth crime rates in Catalonia. Exploiting the staggered geographical implementation of DVT, which emphasizes extensive on-the-job training in companies relative to regular school-based vocational training, we use a Difference-in-Differences approach to estimate causal effects. Leveraging detailed administrative education and geolocated crime data, our analysis reveals that increased availability of firm-based vocational training significantly reduces local youth crime rates. The findings highlight the potential of high-quality vocational education as a crucial policy intervention for crime prevention.
+
+  - title: "Reshuffling the Desks? Affirmative Action, Segregation, and Educational Attainment"
+    coauthors:
+      - name: "Clemens Oberhuemer"
+        url: "https://www.upf.edu/es/web/econ/phd-j-q/-/asset_publisher/SEEPGXyIzl2C/content/oberhuemer-clemens/maximized"
+      - name: "Sergi Quintana"
+        url: "https://sergiquintana.github.io/"
+
+    abstract: >
+      Barcelona’s 2019 admission quotas reserve seats for socioeconomically vulnerable students in each public and charter school. I estimate impacts on school segregation, parental applications, and achievement–parental education gradients using difference in differences and a structural model of school and neighborhood choice. Preliminary results show sizable reductions in segregation as schools converge to quota targets, but higher vulnerable student shares lead to fewer applications.
+
+teaching:
+  heading: "UB"
+  items:
+    - course: "Introduction to Economics"
+      audience: "undergraduate students"
+      years: "2024–2025"

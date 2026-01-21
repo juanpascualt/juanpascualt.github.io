@@ -1,0 +1,7 @@
+baseURL = "https://juanpascualt.github.io/"
+languageCode = "en"
+title = "Juan Pascual | Homepage"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap"]
+
+[params]
+  author = "Juan Pascual"
