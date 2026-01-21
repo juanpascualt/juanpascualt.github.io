@@ -30,77 +30,32 @@
       <p>{{ . }}</p>
     {{ end }}
 
-    {{ with $s.jobmarket_line }}
-      <p><strong>{{ . }}</strong></p>
-    {{ end }}
-
     <hr>
 
-    <h2 id="jmp">Job Market Paper</h2>
+    <h2 id="workinprogress">Work in Progress</h2>
 
-    <h3 style="margin:20px 0 5px;">
-      <a href="{{ $s.job_market_paper.pdf }}" target="_blank" rel="noopener">{{ $s.job_market_paper.title }}</a>
-    </h3>
-
-    {{ with $s.job_market_paper.notes_line }}
-      <p style="margin:0 0 5px;">{{ . }}</p>
-    {{ end }}
-
-    <p style="margin:0 0 5px;">
-      <a href="javascript:toggle(1)">Abstract <span id="pubabslink_1">▼</span></a>
-    </p>
-    <span id="pubabs_1" style="display:none;">
-      <p class="abstract">{{ $s.job_market_paper.abstract }}</p>
-    </span>
-
-    <hr>
-
-    <h2 id="workingpapers">Working Papers</h2>
-
-    {{ $pid := 2 }}
-    {{ range $s.working_papers }}
+    {{ $pid := 1 }}
+    {{ range $s.work_in_progress }}
       <h3 style="margin:20px 0 5px;">
-        <a href="{{ .pdf }}" target="_blank" rel="noopener">{{ .title }}</a>
+        {{ .title }}
       </h3>
 
       {{ if .coauthors }}
         <p style="margin:0 0 5px;">
           (with
           {{ range $i, $a := .coauthors }}
-            {{ if $i }}, {{ end }}<a href="{{ $a.url }}" target="_blank" rel="noopener">{{ $a.name }}</a>
+            {{ if $i }}, {{ end }}
+            <a href="{{ $a.url }}" target="_blank" rel="noopener">{{ $a.name }}</a>
           {{ end }})
         </p>
       {{ end }}
 
       <p style="margin:0 0 5px;">
-        <a href="javascript:toggle({{ $pid }})">Abstract <span id="pubabslink_{{ $pid }}">▼</span></a>
+        <a href="javascript:toggle({{ $pid }})">
+          Abstract <span id="pubabslink_{{ $pid }}">▼</span>
+        </a>
       </p>
-      <span id="pubabs_{{ $pid }}" style="display:none;">
-        <p class="abstract">{{ .abstract }}</p>
-      </span>
 
-      {{ $pid = add $pid 1 }}
-    {{ end }}
-
-    <hr>
-
-    <h2 id="workinprogress">Work in Progress</h2>
-
-    {{ range $s.work_in_progress }}
-      <h3 style="margin:20px 0 5px;">{{ .title }}</h3>
-
-      {{ if .coauthors }}
-        <p style="margin:0 0 5px;">
-          (with
-          {{ range $i, $a := .coauthors }}
-            {{ if $i }}, {{ end }}<a href="{{ $a.url }}" target="_blank" rel="noopener">{{ $a.name }}</a>
-          {{ end }})
-        </p>
-      {{ end }}
-
-      <p style="margin:0 0 5px;">
-        <a href="javascript:toggle({{ $pid }})">Abstract <span id="pubabslink_{{ $pid }}">▼</span></a>
-      </p>
       <span id="pubabs_{{ $pid }}" style="display:none;">
         <p class="abstract">{{ .abstract }}</p>
       </span>
@@ -112,10 +67,14 @@
 
     <h2 id="teaching">Teaching</h2>
     <h3>{{ $s.teaching.heading }}</h3>
+
     <ul>
       {{ range $s.teaching.items }}
         <li>
-          <p><strong>{{ .course }}</strong> for {{ .audience }} ({{ .years }})</p>
+          <p>
+            <strong>{{ .course }}</strong>
+            for {{ .audience }} ({{ .years }})
+          </p>
         </li>
       {{ end }}
     </ul>
@@ -125,21 +84,18 @@
   <footer></footer>
 </div>
 
-<script src="/js/scale_fix.js"></script>
 <script>
   function toggle(pid) {
-    const objid = "pubabs_" + pid.toString();
-    const linkid = "pubabslink_" + pid.toString();
-    const absobj = document.getElementById(objid);
-    const linkobj = document.getElementById(linkid);
-    if (!absobj || !linkobj) return;
+    const abs = document.getElementById("pubabs_" + pid);
+    const link = document.getElementById("pubabslink_" + pid);
+    if (!abs || !link) return;
 
-    if (absobj.style.display === "none") {
-      absobj.style.display = "inline";
-      linkobj.textContent = "▲";
+    if (abs.style.display === "none") {
+      abs.style.display = "inline";
+      link.textContent = "▲";
     } else {
-      absobj.style.display = "none";
-      linkobj.textContent = "▼";
+      abs.style.display = "none";
+      link.textContent = "▼";
     }
   }
 </script>
