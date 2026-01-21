@@ -1,20 +1,23 @@
-<!doctype html>
-<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ .Site.Title }}</title>
+
+  <title>Juan Pascual | Economics PhD | University of Barcelona</title>
+
+  <meta name="description"
+        content="Juan Pascual is a PhD candidate in Economics at the University of Barcelona. Research on education, crime, and public economics.">
+
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://juanpascualt.github.io/">
 
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="/favicon.ico">
 
-  <meta property="og:title" content="{{ .Site.Title }}">
+  <!-- Open Graph (Google / LinkedIn / Twitter previews) -->
+  <meta property="og:title" content="Juan Pascual | Economics PhD">
+  <meta property="og:description"
+        content="PhD candidate in Economics at the University of Barcelona. Research on education, crime, and public economics.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="{{ .Site.BaseURL }}">
+  <meta property="og:url" content="https://juanpascualt.github.io/">
 </head>
-
-<body>
-  {{ block "main" . }}{{ end }}
-</body>
-</html>
