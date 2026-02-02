@@ -568,6 +568,67 @@ img {
     }
 }
 
+/* ========================================================================== 
+   Conference Presentations (estilo referencia)
+   ========================================================================== */
+.section-header-line {
+    position: relative;
+    padding-left: 60px;
+}
+
+.section-header-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 2px;
+    background-color: var(--color-accent);
+}
+
+.section-header-line h2 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 400;
+    font-style: italic;
+}
+
+.conferences-list {
+    max-width: 900px;
+    margin-top: var(--spacing-lg);
+}
+
+.conference-year {
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.conference-year:last-child {
+    border-bottom: none;
+}
+
+.year-title {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--color-accent);
+    margin-bottom: var(--spacing-sm);
+}
+
+.conference-items {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    color: var(--color-text-light);
+    line-height: 1.8;
+    padding-left: var(--spacing-md);
+}
+
+.conference-items em {
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
 /* ==========================================================================
    Dark Mode (Optional - uncomment if wanted)
    ========================================================================== */
