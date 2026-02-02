@@ -1,82 +1,181 @@
 {{ define "main" }}
 {{ $s := .Site.Data.site }}
-<div class="wrapper">
-  <header>
-    <h1>{{ $s.name }}</h1>
-    <p></p>
-    <hr>
-    {{ range $s.links }}
-      <p class="contactinfo"><a href="{{ .href }}">{{ .label }}</a></p>
-    {{ end }}
-    <img src="{{ $s.photo }}" alt="Photo" class="profile">
-    <br>
-    {{ $s.position }}
-    <br>
-    {{ $s.affiliation }}
-    <br>
-    <a href="{{ $s.cv }}" target="_blank" rel="noopener">CV</a>
-    |
-    <a href="mailto:{{ $s.email }}">Email</a>
-  </header>
-  <section>
-    <h2 id="bio">Welcome</h2>
-    {{ range $s.intro }}
-      <p>{{ . }}</p>
-    {{ end }}
-    <hr>
-    <h2 id="research">Research</h2>
-    {{ $pid := 1 }}
-    {{ range $s.work_in_progress }}
-      <h3 style="margin:20px 0 5px;">
-        {{ .title }}
-      </h3>
-      {{ if .coauthors }}
-        <p style="margin:0 0 5px;">
-          (with
-          {{ range $i, $a := .coauthors }}
-            {{ if $i }}, {{ end }}
-            <a href="{{ $a.url }}" target="_blank" rel="noopener">{{ $a.name }}</a>
-          {{ end }})
-        </p>
-      {{ end }}
-      <p style="margin:0 0 5px;">
-        <a href="javascript:toggle({{ $pid }})">
-          Abstract <span id="pubabslink_{{ $pid }}">▼</span>
-        </a>
-      </p>
-      <span id="pubabs_{{ $pid }}" style="display:none;">
-        <p class="abstract">{{ .abstract }}</p>
-      </span>
-      {{ $pid = add $pid 1 }}
-    {{ end }}
-    <hr>
-    <h2 id="teaching">Teaching</h2>
-    <h3>{{ $s.teaching.heading }}</h3>
-    <ul>
-      {{ range $s.teaching.items }}
-        <li>
-          <p>
-            <strong>{{ .course }}</strong>
-            for {{ .audience }} ({{ .years }})
-          </p>
-        </li>
-      {{ end }}
-    </ul>
-  </section>
-  <footer></footer>
-</div>
-<script>
-  function toggle(pid) {
-    const abs = document.getElementById("pubabs_" + pid);
-    const link = document.getElementById("pubabslink_" + pid);
-    if (!abs || !link) return;
-    if (abs.style.display === "none") {
-      abs.style.display = "inline";
-      link.textContent = "▲";
-    } else {
-      abs.style.display = "none";
-      link.textContent = "▼";
-    }
-  }
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $s.name }} | {{ $s.position }} | {{ $s.affiliation }}</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">J. Pascual</a>
+            <div class="nav-links">
+                <a href="#about">About</a>
+                <a href="#research">Research</a>
+                <a href="#teaching">Teaching</a>
+                <a href="mailto:{{ $s.email }}">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <!-- Optional badge - uncomment if on job market -->
+                <!-- <span class="badge">ON THE 2025/26 JOB MARKET</span> -->
+
+                <h1 class="hero-name">{{ $s.name }}</h1>
+                <p class="hero-title">{{ $s.position }} in Economics</p>
+
+                <div class="affiliations">
+                    <span>{{ $s.affiliation }}</span>
+                    {{ if $s.location }}
+                    <span class="separator">·</span>
+                    <span>{{ $s.location }}</span>
+                    {{ end }}
+                </div>
+
+                <div class="hero-bio">
+                    {{ range $s.intro }}
+                    <p>{{ . }}</p>
+                    {{ end }}
+                </div>
+
+                <a href="{{ $s.cv }}" class="cv-button" target="_blank" rel="noopener">
+                    Curriculum Vitae
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+
+            <div class="hero-image">
+                <div class="image-frame">
+                    <img src="{{ $s.photo }}" alt="{{ $s.name }}">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Research Section -->
+    <section id="research" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-number">01</span>
+                <h2>Research</h2>
+                <p class="section-subtitle">Education · Crime · Public Economics</p>
+            </div>
+
+            <div class="papers-list">
+                {{ $pid := 1 }}
+                {{ range $s.work_in_progress }}
+                <article class="paper">
+                    <h3 class="paper-title">{{ .title }}</h3>
+                    {{ if .coauthors }}
+                    <p class="paper-authors">
+                        (with
+                        {{ range $i, $a := .coauthors }}
+                        {{ if $i }}, {{ end }}
+                        <a href="{{ $a.url }}" target="_blank" rel="noopener">{{ $a.name }}</a>
+                        {{ end }}
+                        )
+                    </p>
+                    {{ end }}
+                    {{ if .abstract }}
+                    <div class="abstract-toggle">
+                        <button onclick="toggleAbstract({{ $pid }})" class="abstract-btn" id="pubabslink_{{ $pid }}">
+                            Abstract ▾
+                        </button>
+                    </div>
+                    <div class="abstract-content" id="pubabs_{{ $pid }}" style="display: none;">
+                        <p>{{ .abstract }}</p>
+                    </div>
+                    {{ end }}
+                </article>
+                {{ $pid = add $pid 1 }}
+                {{ end }}
+            </div>
+        </div>
+    </section>
+
+    <!-- Teaching Section -->
+    <section id="teaching" class="section section-alt">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-number">02</span>
+                <h2>Teaching</h2>
+            </div>
+
+            <div class="teaching-list">
+                <h3 class="teaching-institution">{{ $s.teaching.heading }}</h3>
+                {{ range $s.teaching.items }}
+                <div class="teaching-item">
+                    <h4>{{ .course }}</h4>
+                    <p>{{ .audience }} ({{ .years }})</p>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-number">03</span>
+                <h2>Contact</h2>
+            </div>
+
+            <div class="contact-content">
+                <p>Feel free to reach out via email:</p>
+                <a href="mailto:{{ $s.email }}" class="email-link">{{ $s.email }}</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>&copy; {{ now.Year }} {{ $s.name }}. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleAbstract(pid) {
+            const abs = document.getElementById("pubabs_" + pid);
+            const link = document.getElementById("pubabslink_" + pid);
+            if (!abs || !link) return;
+            if (abs.style.display === "none") {
+                abs.style.display = "block";
+                link.textContent = "Abstract ▴";
+            } else {
+                abs.style.display = "none";
+                link.textContent = "Abstract ▾";
+            }
+        }
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
 {{ end }}
