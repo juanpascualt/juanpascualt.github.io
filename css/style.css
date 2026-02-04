@@ -629,6 +629,28 @@ img {
     color: var(--color-text-muted);
 }
 
+/* Paper Figures */
+.paper-figures {
+    display: flex;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    flex-wrap: wrap;
+}
+
+.paper-figures img {
+    max-width: 48%;
+    height: auto;
+    border-radius: 4px;
+    background-color: var(--color-white);
+    padding: var(--spacing-sm);
+}
+
+@media (max-width: 768px) {
+    .paper-figures img {
+        max-width: 100%;
+    }
+}
+
 /* ==========================================================================
    Dark Mode (Optional - uncomment if wanted)
    ========================================================================== */
