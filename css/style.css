@@ -229,9 +229,20 @@ img {
 .hero-announcement {
     margin: var(--spacing-md) 0;
     padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--color-accent);
+    border: 2px solid var(--color-accent);
     background-color: var(--color-white);
     max-width: 640px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.hero-announcement-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
 }
 
 .hero-announcement p {
