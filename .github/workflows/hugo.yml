@@ -28,12 +28,12 @@ jobs:
           extended: true
 
       - name: Build
-        run: hugo --minify
+        run: |          mkdir -p _site          cp -R index.html css img pdf js sitemap.xml robots.txt google0bb8187951ec28a0.html _site/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./public
+          path: ./_site
 
   deploy:
     environment:
