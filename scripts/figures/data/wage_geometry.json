@@ -2,14 +2,48 @@
  "source": "scripts/figures/data/original_wage.png",
  "source_sha256": "9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de",
  "source_origin": "img/crime_monthly_earnings_large.png at immutable baseline commit 3c33d79aab0943ff209224029cf80dce9b9f3363 (last changed in 2310c86)",
+ "style_reference": "Vocational/5_Package/2_Out/Figures/1_did_offer/01_did_validation/eventstudy_crpc_ctrl.png (Dropbox, read-only; colours sampled from it)",
  "output": "img/crime_monthly_earnings_large.png",
- "output_sha256": "2117f66eead966e61c1605af3feaf42ea8e5e7d9c2051f7937b81796bbb4b0b2",
+ "output_sha256": "2337efa4b80b9d6570cbb6e0f6e5f58085dae00034b2876cd954dce84abd0d59",
  "size": [
   1600,
   1050
  ],
- "method": "coverage level k = clip(B - R, 0, 139) of #2166AC over neutral background; support S = {k>=1}; hollow interiors = enclosed non-S; output on S u holes = round(255 - k*(255-89)/139); all other pixels redrawn. No values inferred.",
- "mark_grey": 89,
+ "method": "coverage level k = clip(B - R, 0, 139) of #2166AC over neutral background; support S = {k>=1}; hollow interiors = enclosed non-S; marker region = S within 11.0 px of each measured disk centre, border = marker pixels beyond 8.0 px (whole ring for hollow markers), CI bar = rest of S; output on S = round(255 - k*(255-c)/139) with c the class colour, hollow interiors white; all other pixels redrawn. No values inferred; only the 95% CI exists.",
+ "class_colours": {
+  "ci_bar": "#72B1D4",
+  "marker_fill": "#0072B2",
+  "marker_border": "#262626"
+ },
+ "class_mask_encoding": {
+  "0": "none",
+  "85": "ci_bar",
+  "170": "marker_fill",
+  "255": "marker_border"
+ },
+ "partition_parameters": {
+  "core_k": 70,
+  "bar_core_width_px": 4,
+  "disk_rows_range": [
+   15,
+   20
+  ],
+  "r_out_px": 11.0,
+  "r_in_px": 8.0,
+  "fill_k_min_decodable": 78,
+  "fill_k_min_observed": 116
+ },
+ "font": "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+ "font_px": {
+  "title": 24,
+  "subtitle": 20,
+  "axis": 22,
+  "tick": 18,
+  "note": 17
+ },
+ "note_lines": [
+  "Notes: Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period; deeper pre-periods come from later adopters. Bars show 95% confidence intervals."
+ ],
  "panel_bounds_px": {
   "x0": 120,
   "x1": 1546,
@@ -59,7 +93,18 @@
   "791": 0.4098,
   "792": 0.0
  },
+ "reference_line_max_grey_shift": 1,
  "support_pixels": 31478,
+ "class_pixels": {
+  "ci_bar": 27702,
+  "marker_fill": 1186,
+  "marker_border": 2590
+ },
+ "class_components": {
+  "ci_bar": 235,
+  "marker_fill": 6,
+  "marker_border": 13
+ },
  "ringing_pixels_excluded": 494,
  "hollow_interior_pixels": 395,
  "hollow_markers_at_event_time": [
@@ -71,151 +116,531 @@
   -1,
   1
  ],
+ "markers": [
+  {
+   "event_time": -6,
+   "centre_xy": [
+    245.4471,
+    754.0
+   ],
+   "disk_rows": [
+    746,
+    762
+   ],
+   "hollow": true,
+   "marker_pixels": 253,
+   "fill_pixels": 0,
+   "border_pixels": 253,
+   "stray_offbar_support_pixels_outside_marker": 40,
+   "stray_offbar_max_k": 3,
+   "support_rows_top_bottom": [
+    610,
+    896
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    614,
+    893
+   ],
+   "bar_core_rows_top_bottom": [
+    614,
+    893
+   ]
+  },
+  {
+   "event_time": -5,
+   "centre_xy": [
+    344.1117,
+    644.0
+   ],
+   "disk_rows": [
+    636,
+    652
+   ],
+   "hollow": true,
+   "marker_pixels": 260,
+   "fill_pixels": 0,
+   "border_pixels": 260,
+   "stray_offbar_support_pixels_outside_marker": 57,
+   "stray_offbar_max_k": 6,
+   "support_rows_top_bottom": [
+    505,
+    785
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    506,
+    781
+   ],
+   "bar_core_rows_top_bottom": [
+    506,
+    781
+   ]
+  },
+  {
+   "event_time": -4,
+   "centre_xy": [
+    442.8469,
+    692.0
+   ],
+   "disk_rows": [
+    684,
+    700
+   ],
+   "hollow": true,
+   "marker_pixels": 246,
+   "fill_pixels": 0,
+   "border_pixels": 246,
+   "stray_offbar_support_pixels_outside_marker": 44,
+   "stray_offbar_max_k": 3,
+   "support_rows_top_bottom": [
+    543,
+    838
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    546,
+    838
+   ],
+   "bar_core_rows_top_bottom": [
+    546,
+    838
+   ]
+  },
+  {
+   "event_time": -3,
+   "centre_xy": [
+    542.0178,
+    718.0
+   ],
+   "disk_rows": [
+    710,
+    726
+   ],
+   "hollow": true,
+   "marker_pixels": 248,
+   "fill_pixels": 0,
+   "border_pixels": 248,
+   "stray_offbar_support_pixels_outside_marker": 43,
+   "stray_offbar_max_k": 4,
+   "support_rows_top_bottom": [
+    582,
+    853
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    586,
+    849
+   ],
+   "bar_core_rows_top_bottom": [
+    586,
+    849
+   ]
+  },
+  {
+   "event_time": -2,
+   "centre_xy": [
+    641.2945,
+    734.0
+   ],
+   "disk_rows": [
+    726,
+    742
+   ],
+   "hollow": true,
+   "marker_pixels": 246,
+   "fill_pixels": 0,
+   "border_pixels": 246,
+   "stray_offbar_support_pixels_outside_marker": 45,
+   "stray_offbar_max_k": 4,
+   "support_rows_top_bottom": [
+    630,
+    837
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    634,
+    834
+   ],
+   "bar_core_rows_top_bottom": [
+    634,
+    834
+   ]
+  },
+  {
+   "event_time": -1,
+   "centre_xy": [
+    739.8671,
+    718.5
+   ],
+   "disk_rows": [
+    711,
+    726
+   ],
+   "hollow": true,
+   "marker_pixels": 238,
+   "fill_pixels": 0,
+   "border_pixels": 238,
+   "stray_offbar_support_pixels_outside_marker": 41,
+   "stray_offbar_max_k": 3,
+   "support_rows_top_bottom": [
+    706,
+    730
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    710,
+    727
+   ],
+   "bar_core_rows_top_bottom": null
+  },
+  {
+   "event_time": 0,
+   "centre_xy": [
+    838.6571,
+    595.0
+   ],
+   "disk_rows": [
+    587,
+    603
+   ],
+   "hollow": false,
+   "marker_pixels": 334,
+   "fill_pixels": 198,
+   "border_pixels": 136,
+   "stray_offbar_support_pixels_outside_marker": 45,
+   "stray_offbar_max_k": 4,
+   "support_rows_top_bottom": [
+    475,
+    715
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    479,
+    712
+   ],
+   "bar_core_rows_top_bottom": [
+    479,
+    712
+   ]
+  },
+  {
+   "event_time": 1,
+   "centre_xy": [
+    937.8288,
+    625.0
+   ],
+   "disk_rows": [
+    617,
+    633
+   ],
+   "hollow": true,
+   "marker_pixels": 253,
+   "fill_pixels": 0,
+   "border_pixels": 253,
+   "stray_offbar_support_pixels_outside_marker": 54,
+   "stray_offbar_max_k": 6,
+   "support_rows_top_bottom": [
+    501,
+    749
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    505,
+    745
+   ],
+   "bar_core_rows_top_bottom": [
+    505,
+    745
+   ]
+  },
+  {
+   "event_time": 2,
+   "centre_xy": [
+    1036.6293,
+    565.0
+   ],
+   "disk_rows": [
+    557,
+    573
+   ],
+   "hollow": false,
+   "marker_pixels": 338,
+   "fill_pixels": 198,
+   "border_pixels": 140,
+   "stray_offbar_support_pixels_outside_marker": 49,
+   "stray_offbar_max_k": 3,
+   "support_rows_top_bottom": [
+    430,
+    697
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    434,
+    695
+   ],
+   "bar_core_rows_top_bottom": [
+    434,
+    695
+   ]
+  },
+  {
+   "event_time": 3,
+   "centre_xy": [
+    1135.4347,
+    480.0
+   ],
+   "disk_rows": [
+    472,
+    488
+   ],
+   "hollow": false,
+   "marker_pixels": 340,
+   "fill_pixels": 196,
+   "border_pixels": 144,
+   "stray_offbar_support_pixels_outside_marker": 43,
+   "stray_offbar_max_k": 4,
+   "support_rows_top_bottom": [
+    311,
+    649
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    314,
+    646
+   ],
+   "bar_core_rows_top_bottom": [
+    314,
+    646
+   ]
+  },
+  {
+   "event_time": 4,
+   "centre_xy": [
+    1234.4169,
+    513.0
+   ],
+   "disk_rows": [
+    505,
+    521
+   ],
+   "hollow": false,
+   "marker_pixels": 334,
+   "fill_pixels": 196,
+   "border_pixels": 138,
+   "stray_offbar_support_pixels_outside_marker": 45,
+   "stray_offbar_max_k": 4,
+   "support_rows_top_bottom": [
+    312,
+    714
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    316,
+    710
+   ],
+   "bar_core_rows_top_bottom": [
+    316,
+    710
+   ]
+  },
+  {
+   "event_time": 5,
+   "centre_xy": [
+    1333.5296,
+    436.0
+   ],
+   "disk_rows": [
+    428,
+    444
+   ],
+   "hollow": false,
+   "marker_pixels": 335,
+   "fill_pixels": 196,
+   "border_pixels": 139,
+   "stray_offbar_support_pixels_outside_marker": 41,
+   "stray_offbar_max_k": 4,
+   "support_rows_top_bottom": [
+    183,
+    689
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    186,
+    685
+   ],
+   "bar_core_rows_top_bottom": [
+    186,
+    685
+   ]
+  },
+  {
+   "event_time": 6,
+   "centre_xy": [
+    1432.3061,
+    395.5
+   ],
+   "disk_rows": [
+    387,
+    404
+   ],
+   "hollow": false,
+   "marker_pixels": 351,
+   "fill_pixels": 202,
+   "border_pixels": 149,
+   "stray_offbar_support_pixels_outside_marker": 53,
+   "stray_offbar_max_k": 4,
+   "support_rows_top_bottom": [
+    159,
+    632
+   ],
+   "core_rows_top_bottom_ci_endpoints": [
+    163,
+    628
+   ],
+   "bar_core_rows_top_bottom": [
+    163,
+    628
+   ]
+  }
+ ],
  "text_bboxes_px": {
   "title": [
-   256.0,
-   30,
-   1345.0,
-   67
+   471.0,
+   29,
+   1129.0,
+   51
   ],
   "subtitle": [
-   338.0,
-   78,
-   1263.0,
-   107
+   505.0,
+   62,
+   1095.0,
+   80
   ],
   "ytick_120": [
-   58,
-   135.68421052631578,
-   103,
-   155.68421052631578
+   80,
+   140.68421052631578,
+   107,
+   152.68421052631578
   ],
   "ytick_80": [
-   73,
-   326.96,
-   103,
-   346.96
+   89,
+   331.96,
+   107,
+   343.96
   ],
   "ytick_40": [
-   73,
-   517.5762711864406,
-   103,
-   537.5762711864406
+   89,
+   522.5762711864406,
+   107,
+   534.5762711864406
   ],
   "ytick_0": [
-   88,
-   708.1469387755102,
-   103,
-   728.1469387755102
+   98,
+   713.1469387755102,
+   107,
+   725.1469387755102
   ],
   "ytick_-40": [
-   56,
-   899.3965517241379,
-   103,
-   919.3965517241379
+   79,
+   904.3965517241379,
+   107,
+   916.3965517241379
   ],
   "xtick_-6": [
-   228.98039215686273,
-   945,
-   260.98039215686276,
-   965
+   234.98039215686273,
+   943,
+   253.98039215686273,
+   955
   ],
   "xtick_-5": [
-   328.05454545454546,
-   945,
-   360.05454545454546,
-   965
+   334.05454545454546,
+   943,
+   353.05454545454546,
+   955
   ],
   "xtick_-4": [
-   427.36206896551727,
-   945,
-   459.36206896551727,
-   965
+   433.36206896551727,
+   943,
+   452.36206896551727,
+   955
   ],
   "xtick_-3": [
-   525.9230769230769,
-   945,
-   557.9230769230769,
-   965
+   531.9230769230769,
+   943,
+   550.9230769230769,
+   955
   ],
   "xtick_-2": [
-   624.6724137931035,
-   945,
-   656.6724137931035,
-   965
+   630.6724137931035,
+   943,
+   649.6724137931035,
+   955
   ],
   "xtick_-1": [
-   723.9454545454546,
-   945,
-   755.9454545454546,
-   965
+   729.9454545454546,
+   943,
+   748.9454545454546,
+   955
   ],
   "xtick_0": [
-   831.0196078431372,
-   945,
-   846.0196078431372,
-   965
+   834.0196078431372,
+   943,
+   843.0196078431372,
+   955
   ],
   "xtick_1": [
-   929.55,
-   945,
-   944.55,
-   965
+   932.55,
+   943,
+   941.55,
+   955
   ],
   "xtick_2": [
-   1028.4915254237287,
-   945,
-   1043.4915254237287,
-   965
+   1031.4915254237287,
+   943,
+   1040.4915254237287,
+   955
   ],
   "xtick_3": [
-   1127.65,
-   945,
-   1142.65,
-   965
+   1130.65,
+   943,
+   1139.65,
+   955
   ],
   "xtick_4": [
-   1226.537037037037,
-   945,
-   1241.537037037037,
-   965
+   1229.537037037037,
+   943,
+   1238.537037037037,
+   955
   ],
   "xtick_5": [
-   1325.3333333333333,
-   945,
-   1340.3333333333333,
-   965
+   1328.3333333333333,
+   943,
+   1337.3333333333333,
+   955
   ],
   "xtick_6": [
-   1424.3389830508474,
-   945,
-   1439.3389830508474,
-   965
+   1427.3389830508474,
+   943,
+   1436.3389830508474,
+   955
   ],
   "xlab": [
-   543.0,
-   980,
-   1123.0,
-   1010
+   640.0,
+   972,
+   1025.0,
+   993
   ],
-  "note": [
-   120,
-   1020,
-   1318,
-   1044
+  "note_0": [
+   19,
+   1017,
+   1191,
+   1033
   ],
   "ylab": [
-   28,
-   241,
-   58,
-   817
+   32,
+   335,
+   53,
+   720
   ]
  },
  "checks": {
   "source_sha256_matches": true,
   "output_size_1600x1050": true,
-  "output_neutral_grey": true,
+  "class_colour_maps_injective": true,
+  "every_output_colour_decodes_to_unique_class_and_k": true,
+  "background_colours_disjoint_from_mark_colours": true,
+  "decoded_from_png_colours_only_no_mask": true,
   "per_pixel_coverage_level_identical": true,
+  "class_map_recovered_from_png": true,
   "support_mask_identical": true,
   "hollow_interior_mask_identical_and_white": true,
   "support_components_identical": true,

@@ -700,7 +700,7 @@ img {
 .paper-figures img {
     width: 100%;
     height: auto;
-    aspect-ratio: 18 / 11; /* shared frame so cards match despite different intrinsic sizes */
+    aspect-ratio: 22 / 15; /* shared frame so cards match despite different intrinsic sizes */
     object-fit: contain; /* letterbox inside the white canvas; never crop or distort */
     border-radius: 4px;
     background-color: #ffffff; /* charts keep a white canvas in both themes */

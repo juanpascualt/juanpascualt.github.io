@@ -4,16 +4,19 @@
 #      recorded SHA-256 and every plotted row equals the source row verbatim.
 #   2. Every drawn point and 95% bar equals the saved estimate / ci_lo / ci_hi
 #      for the same (period, series) key, row by row (a permutation fails),
-#      with the original support (10 gap, 12 UP, 24 by-type) and no interval
-#      layer other than the single saved-95% linerange.
+#      with the original support (10 gap, 12 UP, 24 by-type). Each figure has
+#      exactly two interval layers: thin saved 95% (verbatim) and thick 90%
+#      equal to est -/+ qnorm(0.95) * saved SE, keyed the same way.
 #   3. Pooled UP markers are filled exactly where the saved p < 0.05.
-#   4. Titles, subtitles, axis labels, legend and notes equal the original
-#      website wording; no "90" interval text anywhere.
-#   5. Output PNGs are 1800 x 1100, differ from the original website image at
-#      the fixed baseline commit BASELINE (not the moving HEAD, so the check
-#      survives later commits of the restyled PNGs), and the copies under
-#      static/img and public/img are byte-identical (sha256). A baseline blob
-#      that cannot be resolved is a FAIL, never a pass.
+#   4. Template of the reference figure (eventstudy_crpc_ctrl.png): serif font
+#      sizes, colours, margins, point shape/size/stroke, line widths, palette,
+#      and the exact title / subtitle / axis / legend / Notes text.
+#   5. Output PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
+#      original website image at the fixed baseline commit BASELINE (not the
+#      moving HEAD), and the copies under static/img and public/img are
+#      byte-identical (sha256). A baseline blob that cannot be resolved is a
+#      FAIL, never a pass. The .paper-figures img rule has aspect-ratio 22 / 15
+#      in css/, static/css/ and public/css/style.css.
 #   6. Printed numbers reproduce those on the original figures.
 # Usage (repo root):  Rscript scripts/figures/03_verify.R
 suppressPackageStartupMessages({ library(ggplot2); library(jsonlite); library(digest) })
@@ -67,93 +70,175 @@ Sys.unsetenv("FIG_NO_SAVE")
 interval_geoms <- c("GeomLinerange", "GeomErrorbar", "GeomCrossbar", "GeomPointrange",
                     "GeomRibbon", "GeomArea", "GeomRect", "GeomSegment")
 layer_idx <- function(p, cls) which(vapply(p$layers, function(l) inherits(l$geom, cls), TRUE))
+lw_of <- function(l) l$aes_params$linewidth
+# The linerange layer drawn with linewidth `lw` (0.4 = 95%, 1.3 = 90%).
+range_idx <- function(p, lw) {
+  i <- layer_idx(p, "GeomLinerange")
+  i[vapply(p$layers[i], function(l) isTRUE(all.equal(lw_of(l), lw)), TRUE)]
+}
 # Built layer data with a "period|series" key. Dodged x is mapped back to the
 # period by rounding; the series comes from the group index (factor level order).
-keyed <- function(p, cls, series_levels = NULL) {
-  i <- layer_idx(p, cls); stopifnot(length(i) == 1)
+keyed_i <- function(p, i, series_levels = NULL) {
+  stopifnot(length(i) == 1)
   d <- ggplot_build(p)$data[[i]]
   s <- if (is.null(series_levels)) rep("all", nrow(d)) else series_levels[d$group]
   d$key <- paste(round(d$x), s, sep = "|"); d
 }
-saved_keyed <- function(period, series, est, lo, hi)
-  data.frame(key = paste(period, series, sep = "|"), est = est, lo = lo, hi = hi)
-compare_keyed <- function(p, saved, series_levels = NULL) {
-  pts  <- keyed(p, "GeomPoint", series_levels)
-  bars <- keyed(p, "GeomLinerange", series_levels)
+keyed <- function(p, cls, series_levels = NULL) keyed_i(p, layer_idx(p, cls), series_levels)
+Z <- qnorm(0.95)
+saved_keyed <- function(period, series, est, lo, hi, se)
+  data.frame(key = paste(period, series, sep = "|"), est = est, lo = lo, hi = hi,
+             lo90 = est - Z * se, hi90 = est + Z * se)
+bars_match <- function(p, i, saved, lo, hi, series_levels) {
+  bars <- keyed_i(p, i, series_levels)
   bars <- bars[!is.na(bars$ymin) & !is.na(bars$ymax), ]   # NA bounds are not drawn (na.rm)
+  sv <- saved[!is.na(saved[[lo]]) & !is.na(saved[[hi]]), ]
+  m <- match(sv$key, bars$key)
+  list(n = nrow(sv), unique = !anyDuplicated(bars$key),
+       ok = !anyNA(m) && nrow(bars) == nrow(sv) &&
+         identical(bars$ymin[m], sv[[lo]]) && identical(bars$ymax[m], sv[[hi]]))
+}
+compare_keyed <- function(p, saved, series_levels = NULL) {
+  pts <- keyed(p, "GeomPoint", series_levels)
   m_pt <- match(saved$key, pts$key)
-  # bars with NA bounds (gap reference period) are dropped by na.rm; compare the rest
-  sv_b <- saved[!is.na(saved$lo) & !is.na(saved$hi), ]
-  m_b  <- match(sv_b$key, bars$key)
-  list(n_pts = nrow(pts), n_bars = nrow(bars), n_bar_saved = nrow(sv_b),
-       keys_unique = !anyDuplicated(pts$key) && !anyDuplicated(bars$key),
+  b95 <- bars_match(p, range_idx(p, 0.4), saved, "lo", "hi", series_levels)
+  b90 <- bars_match(p, range_idx(p, 1.3), saved, "lo90", "hi90", series_levels)
+  list(n_pts = nrow(pts), keys_unique = !anyDuplicated(pts$key) && b95$unique && b90$unique,
        pts_ok = !anyNA(m_pt) && identical(pts$y[m_pt], saved$est),
-       bars_ok = !anyNA(m_b) && nrow(bars) == nrow(sv_b) &&
-         identical(bars$ymin[m_b], sv_b$lo) && identical(bars$ymax[m_b], sv_b$hi))
+       bars_ok = b95$ok, n95 = b95$n, bars90_ok = b90$ok, n90 = b90$n)
 }
 check_fig <- function(p, saved, n_expected, label, series_levels = NULL) {
+  n_int <- vapply(interval_geoms, function(g) length(layer_idx(p, g)), 1L)
+  check(identical(unname(n_int[["GeomLinerange"]]), 2L) && sum(n_int) == 2L &&
+          length(range_idx(p, 0.4)) == 1L && length(range_idx(p, 1.3)) == 1L &&
+          max(range_idx(p, 0.4)) < min(range_idx(p, 1.3)),
+        sprintf("%s: exactly two interval layers (thin 0.4 = 95%%, thick 1.3 = 90%%, 95%% drawn first)", label))
   r <- compare_keyed(p, saved, series_levels)
   check(nrow(saved) == n_expected && r$n_pts == n_expected && r$keys_unique,
         sprintf("%s: original support of %d (period, series) points, keys unique", label, n_expected))
   check(r$pts_ok, sprintf("%s: each drawn point equals the saved estimate for its key", label))
-  check(r$bars_ok, sprintf("%s: each drawn bar equals saved ci_lo/ci_hi for its key (%d bars)",
-                           label, r$n_bar_saved))
-  n_int <- vapply(interval_geoms, function(g) length(layer_idx(p, g)), 1L)
-  check(identical(unname(n_int[["GeomLinerange"]]), 1L) && sum(n_int) == 1L,
-        sprintf("%s: exactly one interval layer (saved 95%%), no other interval geoms", label))
-  # negative control: a swap of two periods' values must be detected
-  perm <- saved; perm[c(1, nrow(perm)), c("est", "lo", "hi")] <- perm[c(nrow(perm), 1), c("est", "lo", "hi")]
+  check(r$bars_ok, sprintf("%s: each thin bar equals saved 95%% ci_lo/ci_hi verbatim (%d bars)", label, r$n95))
+  check(r$bars90_ok, sprintf("%s: each thick bar equals est -/+ qnorm(0.95) x saved SE (%d bars)", label, r$n90))
+  # negative controls: a swap of two periods, or 1.96-based 90% bars, must be detected
+  perm <- saved; cols <- c("est", "lo", "hi", "lo90", "hi90")
+  perm[c(1, nrow(perm)), cols] <- perm[c(nrow(perm), 1), cols]
   rp <- compare_keyed(p, perm, series_levels)
-  check(!rp$pts_ok && !rp$bars_ok, sprintf("%s: keyed comparison rejects a permuted copy", label))
+  check(!rp$pts_ok && !rp$bars_ok && !rp$bars90_ok,
+        sprintf("%s: keyed comparison rejects a permuted copy", label))
+  wrong <- saved; wrong$lo90 <- saved$lo; wrong$hi90 <- saved$hi
+  check(!compare_keyed(p, wrong, series_levels)$bars90_ok,
+        sprintf("%s: 90%% check rejects bars equal to the 95%% bounds", label))
 }
-sv_gap <- saved_keyed(gap$event_time, "all", gap$att, gap$ci_lower, gap$ci_upper)
-sv_up  <- saved_keyed(up$year, "all", up$est, up$ci_lo, up$ci_hi)
-sv_bt  <- saved_keyed(bt$year, as.character(bt$school_type), bt$est, bt$ci_lo, bt$ci_hi)
+sv_gap <- saved_keyed(gap$event_time, "all", gap$att, gap$ci_lower, gap$ci_upper, gap$se)
+sv_up  <- saved_keyed(up$year, "all", up$est, up$ci_lo, up$ci_hi, up$se)
+sv_bt  <- saved_keyed(bt$year, as.character(bt$school_type), bt$est, bt$ci_lo, bt$ci_hi, bt$se)
 check_fig(p_gap, sv_gap, 10L, "crime gap")
 check_fig(p_up,  sv_up,  12L, "UP")
 check_fig(p_bt,  sv_bt,  24L, "by type", series_levels = levels(bt$school_type))
+check(max(abs(c(gap$ci_upper - gap$att - 1.96 * gap$se, up$ci_hi - up$est - 1.96 * up$se,
+                bt$ci_hi - bt$est - 1.96 * bt$se)), na.rm = TRUE) < 1e-12,
+      "saved 95% bounds are est + 1.96 SE (drawn verbatim, not recomputed)")
+check(all(gap$se[gap$event_time == -1] %in% NA) && all(up$se[up$year == 2018] == 0) &&
+        all(bt$se[bt$year == 2018] == 0), "reference rows keep saved NA (gap) or 0/0 (reshuffling)")
 
 # ---- 3. pooled UP filled markers = saved p < 0.05 ------------------------------
 up_pts <- keyed(p_up, "GeomPoint")
 m <- match(paste(up$year, "all", sep = "|"), up_pts$key)
-check(identical(up_pts$fill[m] == "grey35", !is.na(up$pval) & up$pval < 0.05),
-      "UP: filled markers exactly where saved p < 0.05 (original marker semantics)")
+check(identical(up_pts$fill[m] == "#0072B2", !is.na(up$pval) & up$pval < 0.05) &&
+        all(up_pts$fill[m] %in% c("#0072B2", "white")),
+      "UP: filled (#0072B2) markers exactly where saved p < 0.05, white otherwise")
+gap_pts <- keyed(p_gap, "GeomPoint")
+check(all(gap_pts$fill == "#0072B2"), "crime gap: all markers filled #0072B2 (as original: all filled)")
 
-# ---- 4. original wording ------------------------------------------------------
+# ---- 4. reference template and wording ----------------------------------------
+el <- function(p, k) calc_element(k, p$theme)
+tmpl_ok <- function(p) {
+  t <- function(k, size, colour = NULL, hjust = NULL) {
+    e <- el(p, k); isTRUE(all.equal(e$size, size)) && identical(e$family, "serif") &&
+      (is.null(colour) || identical(e$colour, colour)) && (is.null(hjust) || identical(e$hjust, hjust))
+  }
+  mg <- p$theme$plot.margin
+  t("plot.title", 12, hjust = 0.5) && identical(el(p, "plot.title")$face, "plain") &&
+    t("plot.subtitle", 10, "grey30", 0.5) && t("axis.title.x", 11) && t("axis.title.y", 11) &&
+    t("axis.text.x", 8.8, "black") && t("axis.text.y", 8.8, "black") && t("legend.text", 8.8) &&
+    t("plot.caption", 8.5, "grey15", 0) && identical(el(p, "plot.caption")$lineheight, 1.15) &&
+    identical(as.numeric(mg), c(8, 12, 8, 24)) && identical(unique(grid::unitType(mg)), "points") &&
+    inherits(el(p, "panel.grid.major"), "element_blank") &&
+    identical(el(p, "panel.background")$fill, "white") &&
+    identical(el(p, "axis.line.x")$colour, "black") && isTRUE(all.equal(el(p, "axis.line.x")$linewidth, 0.35)) &&
+    identical(p$theme$legend.position, "bottom") && inherits(p$theme$legend.title, "element_blank")
+}
+lines_ok <- function(p) {
+  h <- p$layers[[layer_idx(p, "GeomHline")]]; v <- p$layers[[layer_idx(p, "GeomVline")]]
+  identical(h$aes_params$colour, "#4D4D4D") && identical(v$aes_params$colour, "#8C8C8C") &&
+    identical(h$aes_params$linetype, "dashed") && identical(v$aes_params$linetype, "dashed") &&
+    h$aes_params$linewidth == 0.4 && v$aes_params$linewidth == 0.4
+}
+pt_ok <- function(p, single) {
+  l <- p$layers[[layer_idx(p, "GeomPoint")]]; ap <- l$aes_params
+  ap$size == 2.0 && ap$stroke == 0.4 && identical(ap$colour, "#262626") &&
+    (!single || identical(ap$shape, 21))
+}
+bar_col_single <- function(p) all(vapply(p$layers[layer_idx(p, "GeomLinerange")],
+                                         function(l) identical(l$aes_params$colour, "#72B1D4"), TRUE))
+for (nm in c("p_gap", "p_up", "p_bt")) {
+  p <- get(nm)
+  check(tmpl_ok(p), sprintf("%s: reference theme (serif 12/10/11/8.8/8.5 pt, grey30/grey15, lineheight 1.15, margins 8/12/8/24 pt, no grid, black 0.35 axes)", nm))
+  check(lines_ok(p), sprintf("%s: zero line #4D4D4D and onset #8C8C8C, dashed 0.4", nm))
+  check(pt_ok(p, nm != "p_bt"), sprintf("%s: points size 2.0, stroke 0.4, border #262626%s", nm,
+                                         if (nm != "p_bt") ", circle 21" else ""))
+}
+check(bar_col_single(p_gap) && bar_col_single(p_up), "single series: both interval layers #72B1D4")
+bt_scales <- ggplot_build(p_bt)$plot$scales
+sv <- function(a) { sc <- bt_scales$get_scales(a); unname(sc$palette(2)) }
+check(identical(sv("fill"), c("#0072B2", "#D55E00")) && identical(sv("colour"), c("#72B1D4", "#E7A672")) &&
+        identical(as.numeric(sv("shape")), c(21, 24)) &&
+        all(vapply(c("colour", "fill", "shape"), function(a) {
+          sc <- bt_scales$get_scales(a); is.null(sc$name) && identical(sc$get_labels(), c("Public", "Charter")) }, TRUE)),
+      "by type: Public circle #0072B2 / CI #72B1D4, Charter triangle #D55E00 / CI #E7A672; legend without title")
+
 lab_is <- function(p, want) all(vapply(names(want), function(k) identical(p$labels[[k]], want[[k]]), TRUE))
-bars_line <- "Bars show 95% confidence intervals."
+notes_text <- function(p) gsub(" ", " ", gsub("\n", " ", p$labels$caption))
+bars_line <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
 check(lab_is(p_gap, list(
   title = "Dual VET narrows the youth-adult crime gap",
-  subtitle = paste0("Effect on the 16-25 minus 36-45 crime-rate gap.\n",
-                    "Post-period average: -17.1 per 1,000 (p = 0.011); pre-trend p = 0.84."),
-  y = "Gap, crimes per 1,000 residents", x = "Years relative to dual-VET adoption",
-  caption = bars_line)), "crime gap: original title, subtitle, axis labels; caption = bars line only")
+  subtitle = "Effect on the 16–25 minus 36–45 crime-rate gap.",
+  y = "Gap, crimes per 1,000 residents", x = "Years relative to dual-VET adoption")) &&
+  identical(notes_text(p_gap), paste(
+    "Notes: Callaway and Sant'Anna event-study estimates with never-treated controls.",
+    "The outcome is the gap between the 16–25 and 36–45 crime rates, in crimes per 1,000 residents.",
+    "Estimates are normalized to zero in year -1.",
+    "Post-period average: -17.1 per 1,000 (p = 0.011); pre-trend test p = 0.84.", bars_line)),
+  "crime gap: title, subtitle, axis labels and Notes (post avg -17.1, p 0.011, pre-trend 0.84)")
 check(lab_is(p_up, list(
-  title = "Continuous DiD \u2013 Infantil (published quotas; UP schools)",
+  title = "Continuous DiD – Infantil (published quotas; UP schools)",
   subtitle = "Outcome: Effect on NESE-B number", y = "Effect on NESE-B number", x = "Year")) &&
-  identical(gsub("\n", " ", p_up$labels$caption), paste(
-    "BCN public+charter; baseline 2016\u20132018; quota year 2019 (ref = 2018);",
-    "n = 311 UP schools (filled = p<0.05)", bars_line)),
-  "UP: original title, subtitle, axis labels and note")
+  identical(notes_text(p_up), paste(
+    "Notes: Continuous difference-in-differences event-study estimates for UP schools",
+    "(BCN public+charter; n = 311 UP schools). Baseline 2016–2018; quota year 2019;",
+    "estimates are relative to the reference year 2018. Filled markers: p < 0.05; hollow markers otherwise.",
+    bars_line)),
+  "UP: original title, subtitle, axis labels; Notes with n = 311, baseline, quota/ref year, marker rule")
 check(lab_is(p_bt, list(
-  title = "Continuous DiD \u2013 Infantil (UP schools by type; published quotas)",
+  title = "Continuous DiD – Infantil (UP schools by type; published quotas)",
   subtitle = "Outcome: Effect on NESE-B number", y = "Effect on NESE-B number", x = "Year")) &&
-  identical(gsub("\n", " ", p_bt$labels$caption), paste(
-    "Public: pre-avg +0.057, post-avg +1.259 (n=158) | Charter: pre-avg -0.029, post-avg +0.399 (n=153) |",
-    "BCN UP-direction schools; baseline 2016\u20132018; quota year 2019 (ref=2018)", bars_line)),
-  "by type: original title, subtitle, axis labels and note (printed averages and n)")
-bt_scales <- ggplot_build(p_bt)$plot$scales
-leg_ok <- all(vapply(c("colour", "fill", "shape"), function(a) {
-  sc <- bt_scales$get_scales(a); identical(sc$name, "School type") &&
-    identical(sc$get_labels(), c("Public", "Charter")) }, TRUE))
-check(leg_ok, "by type: legend 'School type: Public, Charter'")
+  identical(notes_text(p_bt), paste(
+    "Notes: Continuous difference-in-differences event-study estimates for BCN UP-direction schools, by school type.",
+    "Baseline 2016–2018; quota year 2019; estimates are relative to the reference year 2018.",
+    "Public: pre-avg +0.057, post-avg +1.259 (n=158). Charter: pre-avg -0.029, post-avg +0.399 (n=153).",
+    bars_line)),
+  "by type: original title, subtitle, axis labels; Notes with printed averages and n")
+check(all(vapply(list(p_gap, p_up, p_bt), function(p)
+  all(nchar(strsplit(p$labels$caption, "\n")[[1]]) <= 150), TRUE)),
+  "Notes lines wrapped at <= 150 characters")
 all_text <- unlist(lapply(list(p_gap, p_up, p_bt), function(p) unlist(p$labels)))
-check(!any(grepl("90", all_text)) && !any(grepl("\\bSE\\b", all_text)),
-      "no 90% interval or SE text in any figure label")
-src <- readLines(file.path(fig_here, "02_render_figures.R"))
-check(!any(grepl("qnorm|90|lo90|hi90", src)), "renderer contains no 90% interval computation")
+check(!any(grepl("FUENTE|NOTAS", all_text)), "no technical FUENTE/NOTAS footer text")
+src <- readLines(file.path(fig_here, "02_render_figures.R"), encoding = "UTF-8")
+code <- sub("#.*$", "", src)
+check(!any(grepl("qnorm\\(0\\.975\\)|1\\.96", code)) && sum(grepl("qnorm\\(0\\.95\\)", code)) == 1L,
+      "renderer never recomputes 95% bounds; qnorm(0.95) used once (90% only)")
 
-# ---- 5. PNG size, change vs immutable baseline, site copies identical --------
+# ---- 5. PNG size/dpi, change vs immutable baseline, site copies, CSS --------
 # BASELINE = original website checkout (commit 3c33d79, "Clip figures to their
 # rounded frames") from which the figures were restyled. Fixed constant: do not
 # replace with HEAD.
@@ -164,12 +249,27 @@ git_blob <- function(rev_path) {
   st <- attr(out, "status")
   if ((!is.null(st) && st != 0L) || length(out) != 1L || !grepl("^[0-9a-f]{40}$", out)) NA_character_ else out
 }
+be32 <- function(b) sum(as.integer(b) * 256^(3:0))
 png_dim <- function(f) { con <- file(f, "rb"); on.exit(close(con)); readBin(con, "raw", 16)
-  h <- readBin(con, "raw", 8); c(sum(as.integer(h[1:4]) * 256^(3:0)), sum(as.integer(h[5:8]) * 256^(3:0))) }
+  h <- readBin(con, "raw", 8); c(be32(h[1:4]), be32(h[5:8])) }
+# pixels per inch from the pHYs chunk (unit 1 = metre); NA if absent
+png_dpi <- function(f) {
+  r <- readBin(f, "raw", file.info(f)$size); i <- 9L
+  while (i + 8L <= length(r)) {
+    len <- be32(r[i:(i + 3L)]); typ <- rawToChar(r[(i + 4L):(i + 7L)])
+    if (typ == "pHYs") { d <- r[(i + 8L):(i + 16L)]
+      return(if (as.integer(d[9]) == 1L) round(c(be32(d[1:4]), be32(d[5:8])) * 0.0254) else NA) }
+    if (typ == "IDAT") break
+    i <- i + 12L + len
+  }
+  NA
+}
+check(W_IN == 11 && H_IN == 7.5 && DPI == 300, "renderer canvas 11 x 7.5 in at 300 dpi")
 owned <- c("crime_youth_adult_gap_centered.png", "reshuffling_up.png", "reshuffling_by_type.png")
 for (f in owned) {
   p <- file.path(repo, "img", f)
-  check(identical(png_dim(p), c(1800, 1100)), sprintf("%s is 1800 x 1100", f))
+  check(identical(png_dim(p), c(3300, 2250)), sprintf("%s is 3300 x 2250", f))
+  check(identical(png_dpi(p), c(300, 300)), sprintf("%s records 300 dpi (pHYs)", f))
   base_blob <- git_blob(paste0(BASELINE, ":img/", f))
   now_blob  <- system2("git", c("-C", repo, "hash-object", p), stdout = TRUE)
   check(!is.na(base_blob), sprintf("baseline blob %s:img/%s resolves", substr(BASELINE, 1, 7), f))
@@ -181,6 +281,16 @@ for (f in owned) {
   check(length(unique(h)) == 1L, sprintf("%s identical in img/, static/img/, public/img/ (sha256 %s)",
                                          f, substr(h[[1]], 1, 12)))
 }
+css_rule <- function(f) {
+  x <- paste(readLines(file.path(repo, f), warn = FALSE), collapse = "\n")
+  m <- regmatches(x, regexpr("\\.paper-figures img \\{[^}]*\\}", x)); if (length(m)) m else ""
+}
+rules <- vapply(c("css/style.css", "static/css/style.css", "public/css/style.css"), css_rule, "")
+check(all(grepl("aspect-ratio: 22 / 15;", rules, fixed = TRUE)) &&
+        all(grepl("object-fit: contain;", rules, fixed = TRUE)) &&
+        all(grepl("background-color: #ffffff;", rules, fixed = TRUE)) &&
+        length(unique(rules)) == 1L,
+      ".paper-figures img: aspect-ratio 22 / 15, object-fit contain, white background, same in 3 CSS files")
 
 # ---- 6. caption numbers vs numbers printed on the original figures -----------
 check(identical(sprintf("%+.3f", c(avg("Public", 2013:2018), avg("Public", 2019:2024),
