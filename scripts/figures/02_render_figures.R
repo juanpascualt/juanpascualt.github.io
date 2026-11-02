@@ -1,5 +1,12 @@
-# Render the website event-study figures from the saved aggregate estimates
-# in scripts/figures/data/ (see 01_extract_aggregates.py and provenance.json).
+# Render the four website event-study figures with one ggplot template.
+#   * crime gap, pooled UP, UP by type: from the saved aggregate estimates in
+#     scripts/figures/data/ (see 01_extract_aggregates.py and provenance.json).
+#   * monthly wage: graphical reconstruction from the image coordinates of the
+#     original raster (data/original_wage.png), as recorded in
+#     data/wage_geometry.json and re-verified by 04_restyle_wage_raster.py. Its
+#     event-study estimates were never saved, so the panel is drawn in source
+#     pixel units (x right, y down -> scale_y_reverse) with the original tick
+#     positions and printed labels. No coefficient or SE is derived from pixels.
 #
 # Template = the reference paper figure
 #   Vocational/5_Package/2_Out/Figures/1_did_offer/01_did_validation/eventstudy_crpc_ctrl.png
@@ -7,7 +14,7 @@
 # saved at 11 x 7.5 in, 300 dpi. The reference PNG is 3300 x 2434 because a
 # 184 px technical footer (FUENTE/NOTAS) is appended; the website figures are
 # the 3300 x 2250 figure without that footer.
-#   serif (Times); title 12 pt regular centred; subtitle 10 pt grey30; axis
+#   serif (Times); title 16 pt regular centred (wrapped at TITLE_WIDTH chars); subtitle 10 pt grey30; axis
 #   titles 11 pt; tick and legend text 8.8 pt; Notes 8.5 pt grey15, line height
 #   1.15, left aligned; plot margins 8/12/8/24 pt (t/r/b/l); white, no grid;
 #   black axes 0.35 mm; zero line #4D4D4D and onset line #8C8C8C dashed 0.4 mm.
@@ -43,6 +50,7 @@ Z90  <- qnorm(0.95)            # 1.644854; used only for the added 90% bounds
 LW95 <- 0.4; LW90 <- 1.3       # thin 95%, thick 90%
 PT_SIZE <- 2.0; PT_STROKE <- 0.4; PT_BORDER <- "#262626"
 ZERO_COL <- "#4D4D4D"; ONSET_COL <- "#8C8C8C"; REF_LW <- 0.4
+TITLE_PT <- 16; TITLE_WIDTH <- 65   # 16 pt title; ~65 chars fit the 11 in canvas
 
 pal_fill <- c(Public = "#0072B2", Charter = "#D55E00")   # reference slots 1, 2
 pal_bar  <- c(Public = "#72B1D4", Charter = "#E7A672")
@@ -59,7 +67,7 @@ theme_paper_serif <- function(base_size = BASE) {
       axis.ticks       = element_line(linewidth = 0.35, colour = "black"),
       axis.title       = element_text(size = base_size),
       axis.text        = element_text(size = base_size * 0.8, colour = "black"),
-      plot.title       = element_text(size = base_size + 1, hjust = 0.5, face = "plain"),
+      plot.title       = element_text(size = TITLE_PT, hjust = 0.5, face = "plain"),
       plot.subtitle    = element_text(size = base_size - 1, hjust = 0.5, colour = "grey30"),
       plot.caption     = element_text(size = base_size - 2.5, hjust = 0, colour = "grey15",
                                       lineheight = 1.15, margin = margin(t = 10)),
@@ -80,8 +88,10 @@ theme_paper_serif <- function(base_size = BASE) {
 # saved 95% bounds verbatim; thick bars are estimate +/- qnorm(0.95) * saved SE.
 BARS_NOTE <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
 # "Notes:" paragraph, wrapped at 150 characters as in the reference.
-notes_of <- function(text, width = 150)
-  paste(strwrap(paste("Notes:", text, BARS_NOTE), width = width), collapse = "\n")
+notes_of <- function(text, width = 150, bars = BARS_NOTE)
+  paste(strwrap(paste("Notes:", text, bars), width = width), collapse = "\n")
+# Titles wrapped on word boundaries so a long title never clips at 16 pt.
+wrap_title <- function(s, width = TITLE_WIDTH) paste(strwrap(s, width = width), collapse = "\n")
 
 # Saved 95% bounds verbatim; 90% bounds = est +/- qnorm(0.95) * saved SE.
 add_ci <- function(df, est, lo, hi, se = "se") {
@@ -98,23 +108,30 @@ save_fig <- function(p, name) {
   message("wrote ", out)
 }
 
-ref_lines <- function(onset_x) list(
-  geom_hline(yintercept = 0, linetype = "dashed", colour = ZERO_COL, linewidth = REF_LW),
+ref_lines <- function(onset_x, zero_y = 0) list(
+  geom_hline(yintercept = zero_y, linetype = "dashed", colour = ZERO_COL, linewidth = REF_LW),
   geom_vline(xintercept = onset_x, linetype = "dashed", colour = ONSET_COL, linewidth = REF_LW))
 
 # Single-series event study (reference slot 1: blue circle). `hollow` marks
 # points drawn with a white fill (only where the original encoded p >= 0.05).
+# Optional arguments serve the wage figure: `ci90 = FALSE` drops the 90% layer
+# (only the original 95% exists); `x_labels`/`x_limits`/`y_scale`/`zero_y` set
+# the source-coordinate axes. Defaults reproduce the numeric figures unchanged.
 plot_single <- function(df, x, onset_x, title, subtitle, xlab, ylab, caption,
-                        hollow = rep(FALSE, nrow(df)), breaks = sort(unique(df[[x]]))) {
+                        hollow = rep(FALSE, nrow(df)), breaks = sort(unique(df[[x]])),
+                        x_labels = waiver(), x_limits = range(df[[x]]) + c(-0.5, 0.5),
+                        y_scale = NULL, zero_y = 0, ci90 = TRUE) {
   df$x <- df[[x]]; df$fillcol <- ifelse(hollow, "white", FILL1)
   ggplot(df, aes(x = x, y = est)) +
-    ref_lines(onset_x) +
+    ref_lines(onset_x, zero_y) +
     geom_linerange(aes(ymin = lo95, ymax = hi95), colour = BAR1, linewidth = LW95, na.rm = TRUE) +
-    geom_linerange(aes(ymin = lo90, ymax = hi90), colour = BAR1, linewidth = LW90, na.rm = TRUE) +
+    (if (ci90) geom_linerange(aes(ymin = lo90, ymax = hi90), colour = BAR1, linewidth = LW90,
+                              na.rm = TRUE)) +
     geom_point(aes(fill = I(fillcol)), shape = 21, size = PT_SIZE, colour = PT_BORDER,
                stroke = PT_STROKE) +
-    scale_x_continuous(breaks = breaks, limits = range(df$x) + c(-0.5, 0.5), expand = c(0, 0)) +
-    labs(title = title, subtitle = subtitle, x = xlab, y = ylab, caption = caption) +
+    scale_x_continuous(breaks = breaks, labels = x_labels, limits = x_limits, expand = c(0, 0)) +
+    y_scale +
+    labs(title = wrap_title(title), subtitle = subtitle, x = xlab, y = ylab, caption = caption) +
     theme_paper_serif()
 }
 
@@ -188,9 +205,60 @@ p_bt <- ggplot(bt, aes(x = year, y = est, group = school_type)) +
   scale_fill_manual(values = pal_fill, name = NULL) +
   scale_shape_manual(values = pal_shp, name = NULL) +
   scale_x_continuous(breaks = 2013:2024, limits = c(2012.5, 2024.5), expand = c(0, 0)) +
-  labs(title = "Continuous DiD – Infantil (UP schools by type; published quotas)",
+  labs(title = wrap_title("Continuous DiD – Infantil (UP schools by type; published quotas)"),
        subtitle = "Outcome: Effect on NESE-B number",
        x = "Year", y = "Effect on NESE-B number",
        caption = notes_of(bt_note)) +
   theme_paper_serif()
 save_fig(p_bt, "reshuffling_by_type.png")
+
+# ============================================================================
+# 4. Monthly wage: graphical reconstruction from original image coordinates
+# ============================================================================
+# Source: data/wage_geometry.json, measured from data/original_wage.png
+# (sha256 recorded there; re-checked by 04_restyle_wage_raster.py). Units are
+# source pixel indices: x to the right, y downward (hence scale_y_reverse).
+#   * point  = measured marker-disk centre_xy (13 markers, e = -6..6);
+#   * 95% bar = bar_core_rows_top_bottom, the first/last row of the opaque
+#     (k >= 70) bar core outside the marker disk. support_rows_top_bottom also
+#     contains the 1-4 px anti-aliasing/resampling fringe and is not used. At
+#     e = -1 (reference period) the original has no bar (null), so none is drawn;
+#     the marker footprint is not treated as an interval;
+#   * hollow = white interior measured in the original (e = -6..-1 and 1);
+#   * panel limits = original panel bounds (x 120..1546, y 126..931), expand 0,
+#     so every mark keeps its normalized position relative to the original axes;
+#   * ticks = measured tick centres with the labels printed on the original;
+#   * zero line = measured y tick centre for "0"; onset line = weighted centroid
+#     of the measured onset-line column profile.
+# The printed labels give the original units; no coefficient, SE or 90% bound
+# is computed from these coordinates.
+geo <- fromJSON(file.path(data_dir, "wage_geometry.json"), simplifyVector = FALSE)
+wm <- geo$markers
+null_na <- function(v) if (is.null(v)) c(NA_real_, NA_real_) else as.numeric(unlist(v))
+wage <- data.frame(
+  event_time = vapply(wm, function(m) as.integer(m$event_time), 1L),
+  px_x       = vapply(wm, function(m) as.numeric(m$centre_xy[[1]]), 1),
+  est        = vapply(wm, function(m) as.numeric(m$centre_xy[[2]]), 1),
+  lo95       = vapply(wm, function(m) null_na(m$bar_core_rows_top_bottom)[1], 1),
+  hi95       = vapply(wm, function(m) null_na(m$bar_core_rows_top_bottom)[2], 1),
+  hollow     = vapply(wm, function(m) isTRUE(m$hollow), TRUE))
+wpanel <- vapply(geo$panel_bounds_px[c("x0", "x1", "y0", "y1")], as.numeric, 1)
+wx <- vapply(geo$x_tick_centres_px, as.numeric, 1)    # names "-6".."6"
+wy <- vapply(geo$y_tick_centres_px, as.numeric, 1)    # names "120".."-40"
+onset_prof <- vapply(geo$onset_line_cols_profile, as.numeric, 1)
+wage_onset_x <- sum(as.numeric(names(onset_prof)) * onset_prof) / sum(onset_prof)
+wage_note <- paste0(
+  "Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period; ",
+  "deeper pre-periods come from later adopters.")
+p_wage <- plot_single(
+  wage, x = "px_x", onset_x = wage_onset_x, hollow = wage$hollow,
+  breaks = unname(wx), x_labels = names(wx), x_limits = unname(wpanel[c("x0", "x1")]),
+  y_scale = scale_y_reverse(breaks = unname(wy), labels = names(wy),
+                            limits = unname(wpanel[c("y1", "y0")]), expand = c(0, 0)),
+  zero_y = wy[["0"]], ci90 = FALSE,
+  title = "Callaway-Sant'Anna event study: Monthly Wage (EUR, midpoints)",
+  subtitle = "Binary dual-offer adoption | not-yet-treated controls | clustered at school",
+  xlab = "Event time (years relative to dual adoption)",
+  ylab = "Effect on Monthly Wage (EUR, midpoints)",
+  caption = notes_of(wage_note, bars = "Bars show 95% confidence intervals."))
+save_fig(p_wage, "crime_monthly_earnings_large.png")

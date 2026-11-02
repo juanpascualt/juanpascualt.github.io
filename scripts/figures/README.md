@@ -1,15 +1,17 @@
 # Website figures: reproducible renderer
 
-Three of the four research figures on the site are drawn from **saved aggregate
-estimates**: event-study coefficients, their saved standard errors and saved 95%
-bounds. Nothing is re-estimated or digitised. The fourth figure (monthly wage) is
-handled separately and still shows only its original 95% intervals (see
-*Monthly wage figure* below).
+All four research figures on the site are drawn by `02_render_figures.R` with one
+ggplot template. Three of them come from **saved aggregate estimates**: event-study
+coefficients, their saved standard errors and saved 95% bounds. Nothing is
+re-estimated. The fourth (monthly wage) has no saved estimates; it is a **graphical
+reconstruction** from the image coordinates of the original raster and shows only
+its original 95% intervals (see *Monthly wage figure* below).
 
 ```
 python3 -I scripts/figures/01_extract_aggregates.py   # copy rows verbatim from Dropbox sources (needs Dropbox)
-Rscript   scripts/figures/02_render_figures.R          # write img/*.png (3300 x 2250 = 11 x 7.5 in at 300 dpi)
-Rscript   scripts/figures/03_verify.R                  # 73 programmatic checks; exit 1 on any failure
+python3 -I -B scripts/figures/04_restyle_wage_raster.py  # read-only: re-measure original wage raster == wage_geometry.json
+Rscript   scripts/figures/02_render_figures.R          # write the 4 img/*.png (3300 x 2250 = 11 x 7.5 in at 300 dpi)
+Rscript   scripts/figures/03_verify.R                  # programmatic checks; exit 1 on any failure
 ```
 
 `02_render_figures.R` and `03_verify.R` need only `data/` (R: ggplot2, ragg, jsonlite, digest).
@@ -18,7 +20,7 @@ To point it at another location, set `FIG_DROPBOX_ROOT`.
 
 ## Template
 
-The three figures follow the reference paper figure
+The four figures follow the reference paper figure
 `Vocational/5_Package/2_Out/Figures/1_did_offer/01_did_validation/eventstudy_crpc_ctrl.png`
 (`make_es_fig()` in `01_did_validation.R`, which calls `plot_event_study_paper_multi()` in
 `_helpers.R`). That figure is saved at 11 × 7.5 in and 300 dpi. The reference PNG is
@@ -27,7 +29,9 @@ website figures are 3300 × 2250, without that footer. Rendering at the referenc
 physical size matters: at the previous 7.2 × 4.4 in canvas, text was about 1.53 times
 too large relative to the panel.
 
-* Serif (Times via ragg). Title 12 pt, regular, centred. Subtitle 10 pt, grey30. Axis
+* Serif (Times via ragg). Title 16 pt (raised from the reference's 12 pt for
+  legibility on the site), regular, centred, wrapped on word boundaries at 65
+  characters (all current titles fit on one line). Subtitle 10 pt, grey30. Axis
   titles 11 pt. Tick and legend text 8.8 pt. Notes 8.5 pt, grey15, line height 1.15,
   left aligned, wrapped at 150 characters. Plot margins 8/12/8/24 pt (top/right/bottom/left).
 * White background, no grid, black axes (0.35). Zero line `#4D4D4D` and onset line
@@ -69,7 +73,7 @@ comments, not on the public charts. No variable or cache names appear in the Not
   note was clipped at the right edge of the image; its full text (quota year 2019,
   ref = 2018) is confirmed by the source.
 
-After rendering, copy each of the three PNGs to `static/img/` and `public/img/` under
+After rendering, copy each of the four PNGs to `static/img/` and `public/img/` under
 the same filename. `03_verify.R` checks that the sha256 is equal across the three
 locations. The `.paper-figures img` rule in `css/`, `static/css/` and `public/css/style.css`
 uses `aspect-ratio: 22 / 15` (= 3300 / 2250), with `object-fit: contain` on a white
@@ -124,47 +128,59 @@ so they are **not** used.
 
 | | Original | Restyled |
 |---|---|---|
-| Size | 1600×1050 (crime), 1800×1050 (reshuffling) | 3300×2250 all (11 × 7.5 in, 300 dpi), reference template |
+| Size | 1600×1050 (crime, wage), 1800×1050 (reshuffling) | 3300×2250 all (11 × 7.5 in, 300 dpi), reference template |
 | Crime gap | C&S never-treated, 95% bars | identical values and saved 95% bounds (thin), added 90% bars (thick); blue circles; post-average and pre-trend statistics moved to Notes (panel tag "(a)" dropped) |
 | UP | ribbon 95% CI; filled = p < 0.05 | identical values and saved 95% bounds as thin bars, added 90% thick bars; filled blue circle = p < 0.05 (reference year hollow, as before); original note as Notes |
 | By type | 95% bars, all markers filled | identical values and saved 95% bounds, added 90% bars; Public #0072B2 circle, Charter #D55E00 triangle; untitled bottom legend; Notes keep printed averages and n |
+| Wage | 1600×1050 raster, 95% bars, hollow = not significant | same ggplot template; centres and 95% bar endpoints at the original image coordinates (graphical reconstruction, no numbers derived); 95% only; same hollow markers; original title and ATT 39.731*** (SE 13.047) |
 
 ## Monthly wage figure (`img/crime_monthly_earnings_large.png`)
 
-The wage figure uses `04_restyle_wage_raster.py` (Python with NumPy and Pillow).
-Its exact event-study estimates were never saved: `08_survey_outcomes.R` passes
-`cs$dyn` to the plot without writing it to disk. The script therefore recolours
-the statistical pixels of `data/original_wage.png` in place and redraws the
-background, axes and labels. Bars use `#72B1D4`; marker fills use `#0072B2` with
-`#262626` borders. The partition changes colour only. It neither estimates nor
-digitises coefficients.
+The wage event-study estimates were never saved: `08_survey_outcomes.R` passes
+`cs$dyn` to the plot without writing it to disk. The figure is therefore a
+**graphical reconstruction** of the original image, drawn as new ggplot layers by
+the same `plot_single()` helper as the crime-gap and UP figures (circle 21, size 2.0,
+stroke 0.4, fill `#0072B2` / white, border `#262626`; thin 95% bars 0.4 `#72B1D4`;
+no 90% layer; same theme, canvas and Notes style). The old raster is not overlaid.
 
-Run `python3 -I scripts/figures/04_restyle_wage_raster.py` with those packages
-installed. The archived original is protected by its SHA-256
-`9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de`.
-It is byte-identical to `img/crime_monthly_earnings_large.png` at the same baseline
-commit `3c33d79aab0943ff209224029cf80dce9b9f3363` (last changed in `2310c86`).
-The output remains 1600×1050, preserving the original coordinate grid.
-`data/wage_geometry.json` records the final hash and checks; the adjacent masks
-store statistical coverage, support and hollow-marker interiors. The additional
-`wage_geometry_class_mask.png` identifies bar, marker-fill and marker-border
-pixels. All 31,478
-statistical pixels, 141 connected components and seven hollow interiors retain
-their positions and coverage. Labels, printed statistics and the existing 95%
-intervals are unchanged. No new interval level is added. The report records the
-colour partition, measured marker centres and interval endpoints. Verification
-decodes classes and coverage independently from the saved PNG colours, then
-compares them with the original masks and geometry. Reference-line grey values
-can differ by at most one intensity level to keep that decoding unambiguous.
+Source: `data/original_wage.png`, SHA-256
+`9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de`, byte-identical to
+`img/crime_monthly_earnings_large.png` at baseline `3c33d79aab0943ff209224029cf80dce9b9f3363`
+(last changed in `2310c86`). `data/wage_geometry.json` holds the geometric measurements
+of that raster in image coordinates (0-based pixel indices, x right, y down, raster
+resolution). `04_restyle_wage_raster.py` (filename kept for compatibility) is now a
+read-only verifier: it checks the source hash, re-measures the raster with the
+unchanged measurement code and fails unless every measured field (13 marker centres,
+bar endpoints, tick centres, reference-line profiles, hollow markers, connected
+components and the four historical `wage_geometry_*.png` masks) equals the JSON. It
+writes nothing; its former recolouring/PIL output path was removed.
 
-Times New Roman text is scaled to the reference: title 24 px, subtitle 20 px,
-axes 22 px, ticks 18 px and Notes 17 px. The Notes state that this figure shows
-95% confidence intervals only.
+How the panel is drawn (`02_render_figures.R`, section 4):
 
-The PNG is copied byte for byte to `static/img/` and `public/img/`. Font and PNG
-rendering can vary across Pillow versions; the geometry checks run on every
-render. The final output was rendered with the Codex bundled Python runtime;
-the output hash and all geometry checks are recorded in `wage_geometry.json`.
+* x and y are the source pixel coordinates; y uses `scale_y_reverse`. Panel limits are
+  the original panel bounds (x 120..1546, y 126..931) with `expand = 0`, so every mark
+  keeps its normalized position relative to the original axes.
+* Breaks are the measured tick centres, labelled with the values printed on the
+  original (x −6..6; y 120, 80, 40, 0, −40). The labels carry the original units;
+  no coefficient, SE or 90% bound is computed from pixel positions.
+* Points are the measured marker-disk `centre_xy`. Hollow markers (white) are those
+  measured hollow in the original: e = −6..−1 and 1.
+* 95% bars span `bar_core_rows_top_bottom`: the first and last rows of the opaque bar
+  core (coverage k ≥ 70) outside the marker disk. `support_rows_top_bottom` (k ≥ 1) also
+  contains a 1–4 px anti-aliasing/resampling fringe, and
+  `core_rows_top_bottom_ci_endpoints` also counts the marker disk; both stay in the JSON
+  as provenance but are not drawn. e = −1 (reference period) has no bar in the original
+  (`null`), so none is drawn; its marker footprint is not treated as an interval.
+* Zero line at the measured `y_tick_centres_px["0"]`; onset line at the weighted
+  centroid of the measured `onset_line_cols_profile` (x ≈ 789.46).
+
+Fidelity is geometric at the original raster resolution, not numerical estimator
+exactness. Text keeps the original title, subtitle and axis labels; the Notes keep
+"Overall ATT: 39.731*** (SE 13.047)", state that e = −1 is the normalized base period
+and that deeper pre-periods come from later adopters, and that bars show 95%
+confidence intervals. `03_verify.R` checks that each drawn centre and bar endpoint
+equals the saved coordinate for its event time exactly, the ticks, labels, limits,
+reference lines, hollow markers, the absence of a 90% layer, and the source hash.
 
 Background: the original shows the C&S event study for `wage_cont` (binary dual-offer
 adoption, not-yet-treated controls, school cluster, e = −6..6, overall ATT 39.731,

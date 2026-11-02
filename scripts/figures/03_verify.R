@@ -8,10 +8,17 @@
 #      exactly two interval layers: thin saved 95% (verbatim) and thick 90%
 #      equal to est -/+ qnorm(0.95) * saved SE, keyed the same way.
 #   3. Pooled UP markers are filled exactly where the saved p < 0.05.
-#   4. Template of the reference figure (eventstudy_crpc_ctrl.png): serif font
-#      sizes, colours, margins, point shape/size/stroke, line widths, palette,
-#      and the exact title / subtitle / axis / legend / Notes text.
-#   5. Output PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
+#   3b. Monthly wage (graphical reconstruction): archived original's sha256 and
+#      baseline identity; every drawn centre and 95% bar endpoint equals the
+#      saved source image coordinate for its event time (after scale_y_reverse);
+#      no bar at e = -1; one 95% layer, no 90% layer; hollow markers; tick
+#      positions/labels, panel limits and reference-line positions from
+#      wage_geometry.json; no coefficient/SE columns; printed statistics only.
+#   4. Template of the reference figure (eventstudy_crpc_ctrl.png) on all four:
+#      serif font sizes (title 16 pt, wrapped on word boundaries), colours,
+#      margins, point shape/size/stroke, line widths, palette, and the exact
+#      title / subtitle / axis / legend / Notes text.
+#   5. All four PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
 #      original website image at the fixed baseline commit BASELINE (not the
 #      moving HEAD), and the copies under static/img and public/img are
 #      byte-identical (sha256). A baseline blob that cannot be resolved is a
@@ -64,6 +71,16 @@ up  <- read.csv(file.path(data_dir, "reshuffling_up_es.csv"), na.strings = c("NA
 bt  <- read.csv(file.path(data_dir, "reshuffling_by_type_es.csv"), na.strings = c("NA", ""))
 
 # ---- 2. drawn values == saved values, keyed by (period, series) ---------------
+# BASELINE = original website checkout (commit 3c33d79, "Clip figures to their
+# rounded frames") from which the figures were restyled. Fixed constant: do not
+# replace with HEAD.
+BASELINE <- "3c33d79aab0943ff209224029cf80dce9b9f3363"
+git_blob <- function(rev_path) {
+  out <- suppressWarnings(system2("git", c("-C", repo, "rev-parse", "--verify", "--quiet", rev_path),
+                                  stdout = TRUE, stderr = FALSE))
+  st <- attr(out, "status")
+  if ((!is.null(st) && st != 0L) || length(out) != 1L || !grepl("^[0-9a-f]{40}$", out)) NA_character_ else out
+}
 Sys.setenv(FIG_NO_SAVE = "1")
 source(file.path(fig_here, "02_render_figures.R"), local = TRUE)
 Sys.unsetenv("FIG_NO_SAVE")
@@ -150,6 +167,71 @@ check(identical(up_pts$fill[m] == "#0072B2", !is.na(up$pval) & up$pval < 0.05) &
 gap_pts <- keyed(p_gap, "GeomPoint")
 check(all(gap_pts$fill == "#0072B2"), "crime gap: all markers filled #0072B2 (as original: all filled)")
 
+# ---- 3b. monthly wage: source-coordinate reconstruction --------------------------
+notes_text <- function(p) gsub(" ", " ", gsub("\n", " ", p$labels$caption))
+unwrap <- function(s) gsub("\n", " ", s)
+WAGE_SRC_SHA <- "9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de"
+gj <- fromJSON(file.path(data_dir, "wage_geometry.json"), simplifyVector = FALSE)
+orig <- file.path(data_dir, "original_wage.png")
+check(identical(digest(file = orig, algo = "sha256"), WAGE_SRC_SHA) && identical(gj$source_sha256, WAGE_SRC_SHA),
+      "wage: archived original_wage.png sha256 9bac3c2192b6 (= wage_geometry.json source_sha256)")
+orig_blob <- system2("git", c("-C", repo, "hash-object", orig), stdout = TRUE)
+base_wage <- git_blob(paste0(BASELINE, ":img/crime_monthly_earnings_large.png"))
+check(!is.na(base_wage) && identical(orig_blob, base_wage),
+      "wage: original_wage.png is byte-identical to img/crime_monthly_earnings_large.png at baseline 3c33d79")
+check(!any(c("output", "output_sha256", "class_colours", "font", "font_px", "note_lines", "text_bboxes_px",
+             "checks", "reference_line_max_grey_shift") %in% names(gj)) &&
+        all(c("coordinate_system", "measurement_method", "ci_endpoint_choice", "rendering") %in% names(gj)),
+      "wage_geometry.json: measured source fields only (no raster-output hash, recolour or PIL text fields); method documented")
+wb <- ggplot_build(p_wage)
+wl <- function(cls) { i <- layer_idx(p_wage, cls); stopifnot(length(i) == 1); wb$data[[i]] }
+wpt <- wl("GeomPoint"); wbar <- wl("GeomLinerange")
+et <- vapply(gj$markers, function(m) as.integer(m$event_time), 1L)
+cx <- vapply(gj$markers, function(m) m$centre_xy[[1]], 1); cy <- vapply(gj$markers, function(m) m$centre_xy[[2]], 1)
+has_bar <- !vapply(gj$markers, function(m) is.null(m$bar_core_rows_top_bottom), TRUE)
+check(identical(et, -6:6) && identical(et[!has_bar], -1L), "wage: 13 saved markers e = -6..6; only e = -1 has no bar core")
+# event-time key = nearest saved x tick centre; built y is -y_px under scale_y_reverse
+wx_c <- vapply(gj$x_tick_centres_px, as.numeric, 1)
+key_of <- function(x) as.integer(names(wx_c))[vapply(x, function(v) which.min(abs(wx_c - v)), 1L)]
+m <- match(et, key_of(wpt$x))
+check(nrow(wpt) == 13L && !anyNA(m) && !anyDuplicated(key_of(wpt$x)) &&
+        identical(wpt$x[m], cx) && identical(-wpt$y[m], cy),
+      "wage: each drawn centre equals saved centre_xy for its event time exactly (y via scale_y_reverse)")
+wbar <- wbar[!is.na(wbar$ymin) & !is.na(wbar$ymax), ]
+mb <- match(et[has_bar], key_of(wbar$x))
+top <- vapply(gj$markers[has_bar], function(m) as.numeric(m$bar_core_rows_top_bottom[[1]]), 1)
+bot <- vapply(gj$markers[has_bar], function(m) as.numeric(m$bar_core_rows_top_bottom[[2]]), 1)
+w_top <- pmin(-wbar$ymin, -wbar$ymax)[mb]; w_bot <- pmax(-wbar$ymin, -wbar$ymax)[mb]
+check(nrow(wbar) == 12L && !anyNA(mb) && identical(wbar$x[mb], cx[has_bar]) &&
+        identical(w_top, top) && identical(w_bot, bot),
+      "wage: each 95% bar spans saved bar_core_rows_top_bottom exactly (12 bars; none at e = -1)")
+check(!identical(w_top, rev(top)) && !identical(w_bot, rev(bot)),
+      "wage: endpoint comparison rejects a permuted copy")
+n_int_w <- vapply(interval_geoms, function(g) length(layer_idx(p_wage, g)), 1L)
+check(sum(n_int_w) == 1L && length(range_idx(p_wage, 0.4)) == 1L && length(range_idx(p_wage, 1.3)) == 0L,
+      "wage: exactly one interval layer (thin 0.4 = original 95%); no 90% layer")
+hol <- vapply(gj$markers, function(m) isTRUE(m$hollow), TRUE)
+check(identical(et[hol], as.integer(unlist(gj$hollow_markers_at_event_time))) &&
+        identical(et[hol], c(-6:-1, 1L)) &&
+        identical(wpt$fill[m] == "white", hol) && all(wpt$fill[m][!hol] == "#0072B2"),
+      "wage: hollow (white) at e = -6..-1 and 1 as in the original; others filled #0072B2")
+pp <- wb$layout$panel_params[[1]]
+wy_c <- vapply(gj$y_tick_centres_px, as.numeric, 1); pb <- gj$panel_bounds_px
+check(identical(pp$x.range, as.numeric(c(pb$x0, pb$x1))) && identical(-rev(pp$y.range), as.numeric(c(pb$y0, pb$y1))) &&
+        identical(as.numeric(pp$x$get_breaks()), unname(wx_c)) && identical(pp$x$get_labels(), as.character(-6:6)) &&
+        identical(-as.numeric(pp$y$get_breaks()), unname(wy_c)) &&
+        identical(pp$y$get_labels(), c("120", "80", "40", "0", "-40")),
+      "wage: panel = source bounds x 120..1546, y 126..931 (expand 0); saved tick centres with original labels")
+onp <- vapply(gj$onset_line_cols_profile, as.numeric, 1)
+check(identical(-wl("GeomHline")$yintercept, wy_c[["0"]]) &&
+        identical(wl("GeomVline")$xintercept, sum(as.numeric(names(onp)) * onp) / sum(onp)),
+      "wage: zero line at saved y tick '0'; onset at weighted centroid of saved onset profile")
+check(identical(sort(names(wage)), sort(c("event_time", "px_x", "est", "lo95", "hi95", "hollow"))),
+      "wage: plotted data are image coordinates only (no coefficient/SE/90% columns)")
+wcap <- notes_text(p_wage)
+check(grepl("39.731*** (SE 13.047)", wcap, fixed = TRUE) && !grepl("14.329|18.721|90%", wcap),
+      "wage: Notes keep original ATT 39.731*** (SE 13.047); no new SE/ATT, no 90%")
+
 # ---- 4. reference template and wording ----------------------------------------
 el <- function(p, k) calc_element(k, p$theme)
 tmpl_ok <- function(p) {
@@ -158,7 +240,7 @@ tmpl_ok <- function(p) {
       (is.null(colour) || identical(e$colour, colour)) && (is.null(hjust) || identical(e$hjust, hjust))
   }
   mg <- p$theme$plot.margin
-  t("plot.title", 12, hjust = 0.5) && identical(el(p, "plot.title")$face, "plain") &&
+  t("plot.title", 16, hjust = 0.5) && identical(el(p, "plot.title")$face, "plain") &&
     t("plot.subtitle", 10, "grey30", 0.5) && t("axis.title.x", 11) && t("axis.title.y", 11) &&
     t("axis.text.x", 8.8, "black") && t("axis.text.y", 8.8, "black") && t("legend.text", 8.8) &&
     t("plot.caption", 8.5, "grey15", 0) && identical(el(p, "plot.caption")$lineheight, 1.15) &&
@@ -181,14 +263,15 @@ pt_ok <- function(p, single) {
 }
 bar_col_single <- function(p) all(vapply(p$layers[layer_idx(p, "GeomLinerange")],
                                          function(l) identical(l$aes_params$colour, "#72B1D4"), TRUE))
-for (nm in c("p_gap", "p_up", "p_bt")) {
+for (nm in c("p_gap", "p_up", "p_bt", "p_wage")) {
   p <- get(nm)
-  check(tmpl_ok(p), sprintf("%s: reference theme (serif 12/10/11/8.8/8.5 pt, grey30/grey15, lineheight 1.15, margins 8/12/8/24 pt, no grid, black 0.35 axes)", nm))
+  check(tmpl_ok(p), sprintf("%s: reference theme (serif 16/10/11/8.8/8.5 pt, grey30/grey15, lineheight 1.15, margins 8/12/8/24 pt, no grid, black 0.35 axes)", nm))
   check(lines_ok(p), sprintf("%s: zero line #4D4D4D and onset #8C8C8C, dashed 0.4", nm))
   check(pt_ok(p, nm != "p_bt"), sprintf("%s: points size 2.0, stroke 0.4, border #262626%s", nm,
                                          if (nm != "p_bt") ", circle 21" else ""))
 }
-check(bar_col_single(p_gap) && bar_col_single(p_up), "single series: both interval layers #72B1D4")
+check(bar_col_single(p_gap) && bar_col_single(p_up) && bar_col_single(p_wage),
+      "single series (gap, UP, wage): interval layers #72B1D4")
 bt_scales <- ggplot_build(p_bt)$plot$scales
 sv <- function(a) { sc <- bt_scales$get_scales(a); unname(sc$palette(2)) }
 check(identical(sv("fill"), c("#0072B2", "#D55E00")) && identical(sv("colour"), c("#72B1D4", "#E7A672")) &&
@@ -197,8 +280,8 @@ check(identical(sv("fill"), c("#0072B2", "#D55E00")) && identical(sv("colour"), 
           sc <- bt_scales$get_scales(a); is.null(sc$name) && identical(sc$get_labels(), c("Public", "Charter")) }, TRUE)),
       "by type: Public circle #0072B2 / CI #72B1D4, Charter triangle #D55E00 / CI #E7A672; legend without title")
 
-lab_is <- function(p, want) all(vapply(names(want), function(k) identical(p$labels[[k]], want[[k]]), TRUE))
-notes_text <- function(p) gsub(" ", " ", gsub("\n", " ", p$labels$caption))
+lab_is <- function(p, want) all(vapply(names(want), function(k)
+  identical(if (k == "title") unwrap(p$labels[[k]]) else p$labels[[k]], want[[k]]), TRUE))
 bars_line <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
 check(lab_is(p_gap, list(
   title = "Dual VET narrows the youth-adult crime gap",
@@ -228,27 +311,33 @@ check(lab_is(p_bt, list(
     "Public: pre-avg +0.057, post-avg +1.259 (n=158). Charter: pre-avg -0.029, post-avg +0.399 (n=153).",
     bars_line)),
   "by type: original title, subtitle, axis labels; Notes with printed averages and n")
-check(all(vapply(list(p_gap, p_up, p_bt), function(p)
+check(lab_is(p_wage, list(
+  title = "Callaway-Sant'Anna event study: Monthly Wage (EUR, midpoints)",
+  subtitle = "Binary dual-offer adoption | not-yet-treated controls | clustered at school",
+  y = "Effect on Monthly Wage (EUR, midpoints)", x = "Event time (years relative to dual adoption)")) &&
+  identical(notes_text(p_wage), paste(
+    "Notes: Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period;",
+    "deeper pre-periods come from later adopters. Bars show 95% confidence intervals.")),
+  "wage: original title, subtitle, axis labels; Notes with ATT 39.731*** (SE 13.047), base period e = -1, 95% only")
+four <- list(p_gap, p_up, p_bt, p_wage)
+check(all(vapply(four, function(p) {
+  l <- strsplit(p$labels$title, "\n")[[1]]
+  all(nchar(l) <= TITLE_WIDTH) && identical(l, strwrap(unwrap(p$labels$title), TITLE_WIDTH)) }, TRUE)) &&
+    TITLE_PT == 16 && TITLE_WIDTH <= 65,
+  "titles: 16 pt, wrapped on word boundaries at <= 65 characters per line (words preserved)")
+check(all(vapply(four, function(p)
   all(nchar(strsplit(p$labels$caption, "\n")[[1]]) <= 150), TRUE)),
   "Notes lines wrapped at <= 150 characters")
-all_text <- unlist(lapply(list(p_gap, p_up, p_bt), function(p) unlist(p$labels)))
-check(!any(grepl("FUENTE|NOTAS", all_text)), "no technical FUENTE/NOTAS footer text")
+all_text <- unlist(lapply(four, function(p) unlist(p$labels)))
+check(!any(grepl("FUENTE|NOTAS|pixel|px|source_|centre_xy|bar_core", all_text)),
+      "no technical FUENTE/NOTAS footer text or implementation/source-pixel terms on the charts")
 src <- readLines(file.path(fig_here, "02_render_figures.R"), encoding = "UTF-8")
 code <- sub("#.*$", "", src)
 check(!any(grepl("qnorm\\(0\\.975\\)|1\\.96", code)) && sum(grepl("qnorm\\(0\\.95\\)", code)) == 1L,
       "renderer never recomputes 95% bounds; qnorm(0.95) used once (90% only)")
 
 # ---- 5. PNG size/dpi, change vs immutable baseline, site copies, CSS --------
-# BASELINE = original website checkout (commit 3c33d79, "Clip figures to their
-# rounded frames") from which the figures were restyled. Fixed constant: do not
-# replace with HEAD.
-BASELINE <- "3c33d79aab0943ff209224029cf80dce9b9f3363"
-git_blob <- function(rev_path) {
-  out <- suppressWarnings(system2("git", c("-C", repo, "rev-parse", "--verify", "--quiet", rev_path),
-                                  stdout = TRUE, stderr = FALSE))
-  st <- attr(out, "status")
-  if ((!is.null(st) && st != 0L) || length(out) != 1L || !grepl("^[0-9a-f]{40}$", out)) NA_character_ else out
-}
+# (BASELINE and git_blob are defined at the top.)
 be32 <- function(b) sum(as.integer(b) * 256^(3:0))
 png_dim <- function(f) { con <- file(f, "rb"); on.exit(close(con)); readBin(con, "raw", 16)
   h <- readBin(con, "raw", 8); c(be32(h[1:4]), be32(h[5:8])) }
@@ -265,7 +354,8 @@ png_dpi <- function(f) {
   NA
 }
 check(W_IN == 11 && H_IN == 7.5 && DPI == 300, "renderer canvas 11 x 7.5 in at 300 dpi")
-owned <- c("crime_youth_adult_gap_centered.png", "reshuffling_up.png", "reshuffling_by_type.png")
+owned <- c("crime_youth_adult_gap_centered.png", "reshuffling_up.png", "reshuffling_by_type.png",
+           "crime_monthly_earnings_large.png")
 for (f in owned) {
   p <- file.path(repo, "img", f)
   check(identical(png_dim(p), c(3300, 2250)), sprintf("%s is 3300 x 2250", f))

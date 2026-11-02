@@ -2,19 +2,15 @@
  "source": "scripts/figures/data/original_wage.png",
  "source_sha256": "9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de",
  "source_origin": "img/crime_monthly_earnings_large.png at immutable baseline commit 3c33d79aab0943ff209224029cf80dce9b9f3363 (last changed in 2310c86)",
- "style_reference": "Vocational/5_Package/2_Out/Figures/1_did_offer/01_did_validation/eventstudy_crpc_ctrl.png (Dropbox, read-only; colours sampled from it)",
- "output": "img/crime_monthly_earnings_large.png",
- "output_sha256": "2337efa4b80b9d6570cbb6e0f6e5f58085dae00034b2876cd954dce84abd0d59",
  "size": [
   1600,
   1050
  ],
- "method": "coverage level k = clip(B - R, 0, 139) of #2166AC over neutral background; support S = {k>=1}; hollow interiors = enclosed non-S; marker region = S within 11.0 px of each measured disk centre, border = marker pixels beyond 8.0 px (whole ring for hollow markers), CI bar = rest of S; output on S = round(255 - k*(255-c)/139) with c the class colour, hollow interiors white; all other pixels redrawn. No values inferred; only the 95% CI exists.",
- "class_colours": {
-  "ci_bar": "#72B1D4",
-  "marker_fill": "#0072B2",
-  "marker_border": "#262626"
- },
+ "coordinate_system": "Image coordinates of the source raster: pixel indices (0-based), x to the right, y downward, at raster resolution (1600 x 1050). Geometric measurements only; no coefficient, standard error or 90% bound is derived from them.",
+ "measurement_method": "coverage level k = clip(B - R, 0, 139) of #2166AC over a neutral background; support S = {k >= 1}; hollow interiors = enclosed non-S regions >= 30 px; panel bounds and tick centres from the light grid lines (darkness-weighted centres); marker centre: y = midpoint of the rows whose k >= 70 span exceeds the 4 px bar width, x = k-weighted centroid of those rows. Re-measured and compared field by field by 04_restyle_wage_raster.py (read-only).",
+ "ci_endpoint_choice": "02_render_figures.R draws each 95% bar between bar_core_rows_top_bottom: the first and last rows of the opaque bar core (k >= 70) outside the marker disk, i.e. the drawn interval endpoints. support_rows_top_bottom (k >= 1) additionally contains the 1-4 px anti-aliasing / resampling fringe, and core_rows_top_bottom_ci_endpoints also counts the marker disk, which at e = -1 (no bar; bar_core_rows_top_bottom = null) is only the marker footprint. Both are kept as provenance, not drawn.",
+ "rendering": "02_render_figures.R, plot_single(): same ggplot template as the other three figures (11 x 7.5 in, 300 dpi, circle 21 size 2.0, 95% bar linewidth 0.4 #72B1D4, no 90% layer). Axes in source pixel units with scale_y_reverse, limits = panel_bounds_px (expand 0), breaks = x/y_tick_centres_px with the original printed labels; zero line at y_tick_centres_px['0']; onset line at the weighted centroid of onset_line_cols_profile.",
+ "historical_masks": "wage_geometry_support_mask.png (S x 255), wage_geometry_alpha.png (k), wage_geometry_hollow_mask.png (hollow interiors x 255) and wage_geometry_class_mask.png (marker/bar partition, encoding below) were written by the earlier recolouring script (retired 2026-11-02). They are kept as measurement records and are re-checked by 04_restyle_wage_raster.py; they are not used for rendering.",
  "class_mask_encoding": {
   "0": "none",
   "85": "ci_bar",
@@ -29,21 +25,8 @@
    20
   ],
   "r_out_px": 11.0,
-  "r_in_px": 8.0,
-  "fill_k_min_decodable": 78,
-  "fill_k_min_observed": 116
+  "r_in_px": 8.0
  },
- "font": "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
- "font_px": {
-  "title": 24,
-  "subtitle": 20,
-  "axis": 22,
-  "tick": 18,
-  "note": 17
- },
- "note_lines": [
-  "Notes: Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period; deeper pre-periods come from later adopters. Bars show 95% confidence intervals."
- ],
  "panel_bounds_px": {
   "x0": 120,
   "x1": 1546,
@@ -93,7 +76,6 @@
   "791": 0.4098,
   "792": 0.0
  },
- "reference_line_max_grey_shift": 1,
  "support_pixels": 31478,
  "class_pixels": {
   "ci_bar": 27702,
@@ -492,162 +474,6 @@
    ]
   }
  ],
- "text_bboxes_px": {
-  "title": [
-   471.0,
-   29,
-   1129.0,
-   51
-  ],
-  "subtitle": [
-   505.0,
-   62,
-   1095.0,
-   80
-  ],
-  "ytick_120": [
-   80,
-   140.68421052631578,
-   107,
-   152.68421052631578
-  ],
-  "ytick_80": [
-   89,
-   331.96,
-   107,
-   343.96
-  ],
-  "ytick_40": [
-   89,
-   522.5762711864406,
-   107,
-   534.5762711864406
-  ],
-  "ytick_0": [
-   98,
-   713.1469387755102,
-   107,
-   725.1469387755102
-  ],
-  "ytick_-40": [
-   79,
-   904.3965517241379,
-   107,
-   916.3965517241379
-  ],
-  "xtick_-6": [
-   234.98039215686273,
-   943,
-   253.98039215686273,
-   955
-  ],
-  "xtick_-5": [
-   334.05454545454546,
-   943,
-   353.05454545454546,
-   955
-  ],
-  "xtick_-4": [
-   433.36206896551727,
-   943,
-   452.36206896551727,
-   955
-  ],
-  "xtick_-3": [
-   531.9230769230769,
-   943,
-   550.9230769230769,
-   955
-  ],
-  "xtick_-2": [
-   630.6724137931035,
-   943,
-   649.6724137931035,
-   955
-  ],
-  "xtick_-1": [
-   729.9454545454546,
-   943,
-   748.9454545454546,
-   955
-  ],
-  "xtick_0": [
-   834.0196078431372,
-   943,
-   843.0196078431372,
-   955
-  ],
-  "xtick_1": [
-   932.55,
-   943,
-   941.55,
-   955
-  ],
-  "xtick_2": [
-   1031.4915254237287,
-   943,
-   1040.4915254237287,
-   955
-  ],
-  "xtick_3": [
-   1130.65,
-   943,
-   1139.65,
-   955
-  ],
-  "xtick_4": [
-   1229.537037037037,
-   943,
-   1238.537037037037,
-   955
-  ],
-  "xtick_5": [
-   1328.3333333333333,
-   943,
-   1337.3333333333333,
-   955
-  ],
-  "xtick_6": [
-   1427.3389830508474,
-   943,
-   1436.3389830508474,
-   955
-  ],
-  "xlab": [
-   640.0,
-   972,
-   1025.0,
-   993
-  ],
-  "note_0": [
-   19,
-   1017,
-   1191,
-   1033
-  ],
-  "ylab": [
-   32,
-   335,
-   53,
-   720
-  ]
- },
- "checks": {
-  "source_sha256_matches": true,
-  "output_size_1600x1050": true,
-  "class_colour_maps_injective": true,
-  "every_output_colour_decodes_to_unique_class_and_k": true,
-  "background_colours_disjoint_from_mark_colours": true,
-  "decoded_from_png_colours_only_no_mask": true,
-  "per_pixel_coverage_level_identical": true,
-  "class_map_recovered_from_png": true,
-  "support_mask_identical": true,
-  "hollow_interior_mask_identical_and_white": true,
-  "support_components_identical": true,
-  "core_alpha_ge_0.5_components_identical": true,
-  "text_inside_canvas_outside_panel_no_overlap": true,
-  "axes_do_not_touch_marks": true
- },
  "support_components": [
   {
    "area": 1899,
