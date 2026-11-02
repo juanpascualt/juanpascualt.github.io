@@ -1,0 +1,8 @@
+{
+  "post_avg_att": "-17.061",
+  "post_avg_se": "6.697",
+  "post_avg_p": "0.011",
+  "pretest_wald_p": "0.837",
+  "source": "crime_gap_agg",
+  "column": "Anticipation = 0"
+}

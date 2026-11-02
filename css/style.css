@@ -43,6 +43,11 @@
 
 html {
     scroll-behavior: smooth;
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
 }
 
 body {
@@ -63,6 +68,13 @@ a {
 
 a:hover {
     color: var(--color-link-hover);
+}
+
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+    border-radius: 2px;
 }
 
 img {
@@ -114,9 +126,53 @@ img {
     color: var(--color-text);
 }
 
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
 .nav-links {
     display: flex;
     gap: var(--spacing-md);
+}
+
+/* Theme toggle */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    color: var(--color-text-light);
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+    color: var(--color-text);
+    border-color: var(--color-text-light);
+}
+
+.theme-toggle .theme-icon-sun {
+    display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle .theme-icon-sun {
+    display: block;
+}
+
+:root[data-theme="dark"] .theme-toggle .theme-icon-moon {
+    display: none;
+}
+
+/* The toggle needs JavaScript; hide it when the theme script has not run. */
+:root:not([data-theme]) .theme-toggle {
+    display: none;
 }
 
 .nav-links a {
@@ -224,32 +280,6 @@ img {
 
 .hero-bio p {
     margin-bottom: var(--spacing-sm);
-}
-
-.hero-announcement {
-    margin: var(--spacing-md) 0;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 2px solid var(--color-accent);
-    background-color: var(--color-white);
-    max-width: 640px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.hero-announcement-label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-accent);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: 0.5rem;
-}
-
-.hero-announcement p {
-    margin: 0;
-    font-size: 1rem;
-    line-height: 1.7;
-    color: var(--color-text-light);
 }
 
 .cv-button {
@@ -420,6 +450,10 @@ img {
 
 .abstract-btn:hover {
     color: var(--color-accent-dark);
+}
+
+.abstract-content[hidden] {
+    display: none;
 }
 
 .abstract-content {
@@ -594,7 +628,7 @@ img {
     }
 }
 
-/* ========================================================================== 
+/* ==========================================================================
    Conference Presentations (estilo referencia)
    ========================================================================== */
 .section-header-line {
@@ -665,8 +699,11 @@ img {
 
 .paper-figures img {
     width: 100%;
+    height: auto;
+    aspect-ratio: 18 / 11; /* shared frame so cards match despite different intrinsic sizes */
+    object-fit: contain; /* letterbox inside the white canvas; never crop or distort */
     border-radius: 4px;
-    background-color: var(--color-white);
+    background-color: #ffffff; /* charts keep a white canvas in both themes */
     padding: 0;    border: 1px solid var(--color-border);    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);    border-radius: 4px;
 }
 
@@ -677,19 +714,38 @@ img {
 }
 
 /* ==========================================================================
-   Dark Mode (Optional - uncomment if wanted)
+   Dark Mode
+   Follows the system preference by default (also without JavaScript);
+   js/theme.js sets data-theme on <html> to apply a manual choice.
    ========================================================================== */
 
+:root[data-theme="dark"] {
+    --color-bg: #1a1a1a;
+    --color-bg-alt: #242424;
+    --color-text: #f0f0f0;
+    --color-text-light: #c2c2c2;
+    --color-text-muted: #a0a0a0;
+    --color-accent: #d29f8b;
+    --color-accent-dark: #e6bfae;
+    --color-link: #8fb8a0;
+    --color-link-hover: #b3d3c0;
+    --color-border: #444444;
+    --color-white: #2a2a2a;
+}
 
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme]) {
+        color-scheme: dark;
         --color-bg: #1a1a1a;
         --color-bg-alt: #242424;
         --color-text: #f0f0f0;
-        --color-text-light: #b0b0b0;
-        --color-text-muted: #808080;
-        --color-border: #3a3a3a;
+        --color-text-light: #c2c2c2;
+        --color-text-muted: #a0a0a0;
+        --color-accent: #d29f8b;
+        --color-accent-dark: #e6bfae;
+        --color-link: #8fb8a0;
+        --color-link-hover: #b3d3c0;
+        --color-border: #444444;
         --color-white: #2a2a2a;
     }
 }
-

@@ -1,3 +1,5 @@
+# Legacy Hugo data. layouts/index.html now mirrors the canonical static root
+# index.html and does not read this file; kept consistent for reference.
 name: "Juan Pascual"
 position: "PhD Candidate"
 affiliation: "University of Barcelona"
@@ -6,30 +8,31 @@ email: "juanpascual@ub.edu"
 photo: "/img/photo.jpg"
 cv: "/pdf/cv.pdf"
 intro:
-  - "I'm a PhD candidate in Economics at University of Barcelona (UB)."
-  - "I work on questions in Education, Social Mobility and Crime. My research studies how educational settings affect early life trajectories."
+  - "I'm a PhD candidate in Economics at the University of Barcelona (UB) and the Barcelona Institute of Economics (IEB)."
+  - "For the 2026–27 academic year, I am based at Opportunity Insights, Harvard University, visiting Professor Raj Chetty. My visit runs through June 2027."
+  - "My research focuses on education, social mobility, and crime. I study how learning environments shape early life trajectories."
 links:
   - label: "Research"
     href: "#research"
   - label: "Teaching"
     href: "#teaching"
 work_in_progress:
-  - title: "From Detention to Prevention: Firm-Based Vocational Education and Crime"
+  - title: "Apprenticeships and Crime: Evidence from Spain's Vocational Training Reform"
     coauthors:
       - name: "Daniel Montolio"
         url: "https://sites.google.com/site/danielmontolio2/"
       - name: "Jenifer Ruiz Valenzuela"
         url: "https://sites.google.com/site/ruizvalenjenifer/"
     abstract: >
-      This paper examines the impact of an innovative firm-based vocational training program (DVT) on youth crime rates in Catalonia. Exploiting the staggered geographical implementation of DVT, which emphasizes extensive on-the-job training in companies relative to regular school-based vocational training, we use a Difference-in-Differences approach to estimate causal effects. Leveraging detailed administrative education and geolocated crime data, our analysis reveals that increased availability of firm-based vocational training significantly reduces local youth crime rates. The findings highlight the potential of high-quality vocational education as a crucial policy intervention for crime prevention.
-  - title: "Reshuffling the Desks? Affirmative Action, Segregation, and Educational Attainment"
+      We examine the impact of dual vocational training (DVT) on youth crime rates in Catalonia. DVT expands on-the-job training in firms relative to regular school-based vocational training. We exploit its staggered geographical rollout using a difference-in-differences approach and detailed administrative education records linked to geolocated crime data. We find that greater availability of firm-based vocational training significantly reduces local youth crime rates. Reductions concentrate during daytime hours, consistent with incapacitation. Declines are strongest for economically motivated property crimes, consistent with increased opportunity costs through improved labor-market prospects. These results suggest that apprenticeship-style programs can deliver substantial non-pecuniary social returns.
+  - title: "School Segregation, Educational Achievement and Sorting: Evidence from Barcelona's Shock Plan"
     coauthors:
       - name: "Clemens Oberhuemer"
         url: "https://www.upf.edu/es/web/econ/phd-j-q/-/asset_publisher/SEEPGXyIzl2C/content/oberhuemer-clemens/maximized"
       - name: "Sergi Quintana"
         url: "https://sergiquintana.github.io/"
     abstract: >
-      Barcelona's 2019 admission quotas reserve seats for socioeconomically vulnerable students in each public and charter school. We estimate impacts on school segregation, parental applications, and achievement–parental education gradients using difference in differences and a structural model of school and neighborhood choice. Preliminary results show sizable reductions in segregation as schools converge to quota targets, but higher vulnerable student shares lead to fewer applications.
+      Barcelona's Shock Plan Against School Segregation reserves seats for socioeconomically vulnerable students in each public and charter school. We estimate impacts on school segregation, parental applications, and achievement using difference-in-differences and a structural model of school and neighborhood choice. Preliminary results show sizable reductions in segregation as schools converge to quota targets. However, higher vulnerable student shares lead to fewer applications from non-vulnerable families.
 teaching:
   heading: "UB"
   items:

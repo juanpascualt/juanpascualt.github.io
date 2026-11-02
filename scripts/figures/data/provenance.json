@@ -1,0 +1,79 @@
+{
+  "generated_utc": "2026-11-02T21:35:41+00:00",
+  "note": "Rows copied verbatim from saved outputs; no estimation.",
+  "sources": {
+    "crime_gap_es": {
+      "path": "<Dropbox>/Vocational/5_Package/2_Out/_baseline_tables_2026-07-30/4_ddd/01_did_validation/es_leads_lags_ddd.csv",
+      "sha256": "41d36952e4a82abc3fed43302b6a90fc3e8617c6f8d5d7e82d9c835cad6188f3",
+      "bytes": 3982,
+      "mtime_local": "2026-07-20T18:30:58"
+    },
+    "crime_gap_agg": {
+      "path": "<Dropbox>/Vocational/5_Package/2_Out/_baseline_tables_2026-07-30/4_ddd/01_did_validation/anticipation_ddd.tex",
+      "sha256": "b65a62cf08e4ad2ac52c07374d394a0d4bf76639ab83ba8774a43dcdd09081cf",
+      "bytes": 1330,
+      "mtime_local": "2026-07-20T20:40:04"
+    },
+    "reshuffling_up": {
+      "path": "<Dropbox>/Pla de Xoc/Data/Temp/idescat_onsite/mirror_staging/Package/Out/Tables/06_JP_continuous_did/published_quotas/02_eventstudy_number_inf1_bysign.csv",
+      "sha256": "00f294ce7f17133b2d3ee0771c65c47c7e032204cb1552ecc78082d31ae7ca7e",
+      "bytes": 4776,
+      "mtime_local": "2026-07-07T12:19:05"
+    },
+    "reshuffling_by_type": {
+      "path": "<Dropbox>/Pla de Xoc/Data/Temp/idescat_onsite/mirror_staging/Package/Out/Tables/06_JP_continuous_did/published_quotas/03_eventstudy_number_inf1_up_by_school_type.csv",
+      "sha256": "34cbf9d412f3c792919309171bdc2b5d1bf3d764c3391571ae13110030da1a83",
+      "bytes": 3378,
+      "mtime_local": "2026-07-07T12:19:05"
+    }
+  },
+  "extracts": {
+    "crime_gap_es.csv": {
+      "source": "crime_gap_es",
+      "n_rows": 10,
+      "columns": [
+        "event_time",
+        "att",
+        "se",
+        "ci_lower",
+        "ci_upper",
+        "estimator"
+      ],
+      "sha256": "1fc5a03b57cfbe7ecb276e686c2e21579e6d4010b141c705f9ec119b137cd9b5"
+    },
+    "reshuffling_up_es.csv": {
+      "source": "reshuffling_up",
+      "n_rows": 12,
+      "columns": [
+        "year",
+        "est",
+        "se",
+        "pval",
+        "ci_lo",
+        "ci_hi",
+        "sign_group",
+        "n_schools"
+      ],
+      "sha256": "9d8e4e5d82f80ca4b7c7ba3aaa10491b0cf15ecd71dcf5ba8f872d9c35f62aaa"
+    },
+    "reshuffling_by_type_es.csv": {
+      "source": "reshuffling_by_type",
+      "n_rows": 24,
+      "columns": [
+        "year",
+        "school_type",
+        "est",
+        "se",
+        "pval",
+        "ci_lo",
+        "ci_hi",
+        "n_schools"
+      ],
+      "sha256": "164d6ab64fd7dc50bb404aea5dabada51409b18f827043269f9fc75780f2fd04"
+    },
+    "crime_gap_aggregate.json": {
+      "source": "crime_gap_agg",
+      "sha256": "efe4d767d19e1f4db3526591cce2aac415c48c79556cb715f9208fe96ca04cf4"
+    }
+  }
+}

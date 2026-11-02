@@ -1,10 +1,11 @@
-{{ $s := .Site.Data.site }}
+{{- /* Legacy Hugo layout. The canonical site is the static root index.html (deployed by .github/workflows/hugo.yml). This file mirrors it verbatim so a Hugo build cannot regress content; edit root index.html first and copy it here, to public/index.html, and css/js to static/ and public/. */ -}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $s.name }} | {{ $s.position }} | {{ $s.affiliation }}</title>
+    <title>Juan Pascual Torres | Economist | University of Barcelona</title>    <meta name="description" content="Juan Pascual Torres is an economist and PhD candidate at the University of Barcelona researching education, social mobility, and crime.">    <meta name="author" content="Juan Pascual Torres">    <link rel="canonical" href="https://juanpascualt.github.io/">    <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Juan Pascual Torres","alternateName":"Juan Pascual","url":"https://juanpascualt.github.io/","jobTitle":"Economist and PhD Candidate","affiliation":{"@type":"Organization","name":"University of Barcelona"},"sameAs":["https://ieb.ub.edu/researcher/pascual-torres-juan/"]}</script>
+    <script src="/js/theme.js"></script>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,11 +16,23 @@
     <nav class="main-nav">
         <div class="nav-container">
             <a href="/" class="nav-logo">J. Pascual</a>
-            <div class="nav-links">
-                <a href="#about">About</a>
-                <a href="#research">Research</a>
-                <a href="#teaching">Teaching</a>
-                <a href="mailto:{{ $s.email }}">Contact</a>
+            <div class="nav-right">
+                <div class="nav-links">
+                    <a href="#about">About</a>
+                    <a href="#research">Research</a>
+                    <a href="#conferences">Presentations</a>
+                    <a href="#teaching">Teaching</a>
+                    <a href="mailto:juanpascual@ub.edu">Contact</a>
+                </div>
+                <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Dark mode" aria-pressed="false" title="Switch to dark mode">
+                    <svg class="theme-icon theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                    <svg class="theme-icon theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="4.5"/>
+                        <path d="M12 1.5v2.5M12 20v2.5M4.22 4.22l1.77 1.77M18.01 18.01l1.77 1.77M1.5 12H4M20 12h2.5M4.22 19.78l1.77-1.77M18.01 5.99l1.77-1.77"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </nav>
@@ -28,34 +41,30 @@
     <section class="hero" id="about">
         <div class="hero-content">
             <div class="hero-text">
-                <h1 class="hero-name">{{ $s.name }}</h1>
-                <p class="hero-title">{{ $s.position }} in Economics</p>
-
+                <h1 class="hero-name">Juan Pascual</h1>
+                <p class="hero-title">PhD Candidate in Economics</p>
                 <div class="affiliations">
-                    <span>{{ $s.affiliation }}</span>
-                    {{ if $s.location }}
+                    <a href="https://web.ub.edu/en/web/facultat-economia-empresa/" target="_blank" rel="noopener">University of Barcelona</a>
                     <span class="separator">·</span>
-                    <span>{{ $s.location }}</span>
-                    {{ end }}
+                    <a href="https://ieb.ub.edu/en/" target="_blank" rel="noopener">Barcelona Institute of Economics</a>
+                    <span class="separator">·</span>
+                    <a href="https://labdeoportunidades.com/en/" target="_blank" rel="noopener">Spanish Opportunity Lab</a>
                 </div>
-
                 <div class="hero-bio">
-                    {{ range $s.intro }}
-                    <p>{{ . }}</p>
-                    {{ end }}
+                    <p>I'm a PhD candidate in Economics at the University of Barcelona (UB) and the Barcelona Institute of Economics (IEB).</p>
+                    <p>For the 2026–27 academic year, I am based at <a href="https://opportunityinsights.org/" target="_blank" rel="noopener">Opportunity Insights</a>, Harvard University, visiting Professor <a href="https://opportunityinsights.org/people/raj-chetty/" target="_blank" rel="noopener">Raj Chetty</a>. My visit runs through June 2027.</p>
+                    <p>My research focuses on education, social mobility, and crime. I study how learning environments shape early life trajectories.</p>
                 </div>
-
-                <a href="{{ $s.cv }}" class="cv-button" target="_blank" rel="noopener">
+                <a href="/pdf/cv.pdf" class="cv-button" target="_blank" rel="noopener">
                     Curriculum Vitae
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                     </svg>
                 </a>
             </div>
-
             <div class="hero-image">
                 <div class="image-frame">
-                    <img src="{{ $s.photo }}" alt="{{ $s.name }}">
+                    <img src="/img/photo.jpg" alt="Juan Pascual">
                 </div>
             </div>
         </div>
@@ -67,72 +76,103 @@
             <div class="section-header">
                 <span class="section-number">01</span>
                 <h2>Research</h2>
-                <p class="section-subtitle">Education · Crime · Public Economics</p>
+                <p class="section-subtitle">Education · Social Mobility · Crime</p>
             </div>
-
             <div class="papers-list">
-                {{ $pid := 1 }}
-                {{ range $s.work_in_progress }}
                 <article class="paper">
-                    <h3 class="paper-title">{{ .title }}</h3>
-                    {{ if .coauthors }}
+                    <h3 class="paper-title">Apprenticeships and Crime:<br>Evidence from Spain's Vocational Training Reform</h3>
                     <p class="paper-authors">
                         (with
-                        {{ range $i, $a := .coauthors }}
-                        {{ if $i }}, {{ end }}
-                        <a href="{{ $a.url }}" target="_blank" rel="noopener">{{ $a.name }}</a>
-                        {{ end }}
-                        )
+                        <a href="https://sites.google.com/site/danielmontolio2/" target="_blank" rel="noopener">Daniel Montolio</a>,
+                        <a href="https://sites.google.com/site/ruizvalenjenifer/" target="_blank" rel="noopener">Jenifer Ruiz Valenzuela</a>)
                     </p>
-                    {{ end }}
-                    {{ if .abstract }}
+                    <div class="paper-figures">
+                        <img src="/img/crime_monthly_earnings_large.png" alt="Graduate Survey – Monthly Earnings">
+                        <img src="/img/crime_youth_adult_gap_centered.png" alt="Dual VET Narrows the Youth–Adult Crime Gap">
+                    </div>
                     <div class="abstract-toggle">
-                        <button onclick="toggleAbstract({{ $pid }})" class="abstract-btn" id="pubabslink_{{ $pid }}">
-                            Abstract ▾
+                        <button type="button" onclick="toggleAbstract(1)" class="abstract-btn" id="pubabslink_1" aria-expanded="false" aria-controls="pubabs_1">
+                            Abstract <span class="abstract-arrow" aria-hidden="true">▾</span>
                         </button>
                     </div>
-                    <div class="abstract-content" id="pubabs_{{ $pid }}" style="display: none;">
-                        <p>{{ .abstract }}</p>
+                    <div class="abstract-content" id="pubabs_1" hidden>
+                        <p>We examine the impact of dual vocational training (DVT) on youth crime rates in Catalonia. DVT expands on-the-job training in firms relative to regular school-based vocational training. We exploit its staggered geographical rollout using a difference-in-differences approach and detailed administrative education records linked to geolocated crime data. We find that greater availability of firm-based vocational training significantly reduces local youth crime rates. Reductions concentrate during daytime hours, consistent with incapacitation. Declines are strongest for economically motivated property crimes, consistent with increased opportunity costs through improved labor-market prospects. These results suggest that apprenticeship-style programs can deliver substantial non-pecuniary social returns.</p>
                     </div>
-                    {{ end }}
                 </article>
-                {{ $pid = add $pid 1 }}
-                {{ end }}
+                <article class="paper">
+                    <h3 class="paper-title">School Segregation, Educational Achievement and Sorting:<br>Evidence from Barcelona's Shock Plan</h3>
+                    <p class="paper-authors">
+                        (with
+                        <a href="https://www.upf.edu/es/web/econ/phd-j-q/-/asset_publisher/SEEPGXyIzl2C/content/oberhuemer-clemens/maximized" target="_blank" rel="noopener">Clemens Oberhuemer</a>,
+                        <a href="https://sergiquintana.github.io/" target="_blank" rel="noopener">Sergi Quintana</a>)
+                    </p>
+                    <div class="paper-figures">
+                        <img src="/img/reshuffling_up.png" alt="Continuous DiD – Infantil (published quotas; UP schools)">
+                        <img src="/img/reshuffling_by_type.png" alt="Continuous DiD – Infantil (UP schools by type; published quotas)">
+                    </div>
+                    <div class="abstract-toggle">
+                        <button type="button" onclick="toggleAbstract(2)" class="abstract-btn" id="pubabslink_2" aria-expanded="false" aria-controls="pubabs_2">
+                            Abstract <span class="abstract-arrow" aria-hidden="true">▾</span>
+                        </button>
+                    </div>
+                    <div class="abstract-content" id="pubabs_2" hidden>
+                        <p>Barcelona's Shock Plan Against School Segregation reserves seats for socioeconomically vulnerable students in each public and charter school. We estimate impacts on school segregation, parental applications, and achievement using difference-in-differences and a structural model of school and neighborhood choice. Preliminary results show sizable reductions in segregation as schools converge to quota targets. However, higher vulnerable student shares lead to fewer applications from non-vulnerable families.</p>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Conference Presentations Section -->
+    <section id="conferences" class="section section-alt">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-number">02</span>
+                <h2>Conference Presentations</h2>
+            </div>
+            <div class="conferences-list">
+                <div class="conference-year">
+                    <h3 class="year-title">2026</h3>
+                    <p class="conference-items">CESifo Junior Workshop on the Economics of Education; 15th European Meeting of the Urban Economics Association; 5th Workshop on the Economics of Crime for Junior Scholars  </p>
+                </div>
+                <div class="conference-year">
+                    <h3 class="year-title">2025</h3>
+                    <p class="conference-items">19th North American Meeting of the Urban Economics Association (UEA); 2nd Freiburg PhD-Workshop on the Economics of Criminal Behavior</p>
+                </div>
+                <div class="conference-year">
+                    <h3 class="year-title">2024</h3>
+                    <p class="conference-items">UB Applied Internal Seminar; Barcelona School of Economics Jamboree</p>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Teaching Section -->
-    <section id="teaching" class="section section-alt">
+    <section id="teaching" class="section">
         <div class="section-container">
             <div class="section-header">
-                <span class="section-number">02</span>
+                <span class="section-number">03</span>
                 <h2>Teaching</h2>
             </div>
-
             <div class="teaching-list">
-                <h3 class="teaching-institution">{{ $s.teaching.heading }}</h3>
-                {{ range $s.teaching.items }}
                 <div class="teaching-item">
-                    <h4>{{ .course }}</h4>
-                    <p>{{ .audience }} ({{ .years }})</p>
+                    <h4>Spanish Economics - UB</h4>
+                    <p>Undergraduate students (2024/2025)</p>
                 </div>
-                {{ end }}
             </div>
         </div>
     </section>
 
     <!-- Contact Section -->
-    <section id="contact" class="section">
+    <section id="contact" class="section section-alt">
         <div class="section-container">
             <div class="section-header">
-                <span class="section-number">03</span>
+                <span class="section-number">04</span>
                 <h2>Contact</h2>
             </div>
-
             <div class="contact-content">
                 <p>Feel free to reach out via email:</p>
-                <a href="mailto:{{ $s.email }}" class="email-link">{{ $s.email }}</a>
+                <a href="mailto:juanpascual@ub.edu" class="email-link">juanpascual@ub.edu</a>
             </div>
         </div>
     </section>
@@ -140,36 +180,39 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
-            <p>&copy; {{ now.Year }} {{ $s.name }}. All rights reserved.</p>
+            <p>&copy; 2026 Juan Pascual. All rights reserved.</p>
         </div>
     </footer>
 
     <script>
         function toggleAbstract(pid) {
             const abs = document.getElementById("pubabs_" + pid);
-            const link = document.getElementById("pubabslink_" + pid);
-            if (!abs || !link) return;
-            if (abs.style.display === "none") {
-                abs.style.display = "block";
-                link.textContent = "Abstract ▴";
-            } else {
-                abs.style.display = "none";
-                link.textContent = "Abstract ▾";
-            }
+            const button = document.getElementById("pubabslink_" + pid);
+            if (!abs || !button) return;
+            const expand = abs.hidden;
+            abs.hidden = !expand;
+            button.setAttribute("aria-expanded", expand ? "true" : "false");
+            const arrow = button.querySelector(".abstract-arrow");
+            if (arrow) arrow.textContent = expand ? "▴" : "▾";
         }
 
-        // Smooth scroll for navigation
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
+        });
+
+        window.addEventListener('scroll', function() {
+            const nav = document.querySelector('.main-nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
         });
     </script>
 </body>
