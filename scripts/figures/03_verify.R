@@ -16,11 +16,12 @@
 #      centre), checked with an independently written formula); hollow markers;
 #      tick positions/labels, panel limits and reference-line positions from
 #      wage_geometry.json; no coefficient/SE columns; printed statistics only.
-#   4. Template of the reference figure (eventstudy_crpc_ctrl.png) on all four:
-#      serif font sizes (title 32 pt, wrapped on word boundaries at 36
-#      characters and measured to fit the canvas width), colours,
+#   4. Template on all four: web-adaptation serif sizes (title 24, axis 16,
+#      ticks 13, legend 13, Notes 12 pt), no subtitle, outcome-first titles
+#      word-wrapped at 70 characters and measured to fit the canvas width in at
+#      most 2 lines, Notes lines measured to fit the same width, colours,
 #      margins, point shape/size/stroke, line widths, palette, and the exact
-#      title / subtitle / axis / legend / Notes text.
+#      title / axis / legend / Notes text.
 #   5. All four PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
 #      original website image at the fixed baseline commit BASELINE (not the
 #      moving HEAD), and the copies under static/img and public/img are
@@ -276,10 +277,10 @@ tmpl_ok <- function(p) {
       (is.null(colour) || identical(e$colour, colour)) && (is.null(hjust) || identical(e$hjust, hjust))
   }
   mg <- p$theme$plot.margin
-  t("plot.title", 32, hjust = 0.5) && identical(el(p, "plot.title")$face, "plain") &&
-    t("plot.subtitle", 10, "grey30", 0.5) && t("axis.title.x", 11) && t("axis.title.y", 11) &&
-    t("axis.text.x", 8.8, "black") && t("axis.text.y", 8.8, "black") && t("legend.text", 8.8) &&
-    t("plot.caption", 8.5, "grey15", 0) && identical(el(p, "plot.caption")$lineheight, 1.15) &&
+  t("plot.title", 24, hjust = 0.5) && identical(el(p, "plot.title")$face, "plain") &&
+    is.null(p$labels$subtitle) && t("axis.title.x", 16) && t("axis.title.y", 16) &&
+    t("axis.text.x", 13, "black") && t("axis.text.y", 13, "black") && t("legend.text", 13) &&
+    t("plot.caption", 12, "grey15", 0) && identical(el(p, "plot.caption")$lineheight, 1.15) &&
     identical(as.numeric(mg), c(8, 12, 8, 24)) && identical(unique(grid::unitType(mg)), "points") &&
     inherits(el(p, "panel.grid.major"), "element_blank") &&
     identical(el(p, "panel.background")$fill, "white") &&
@@ -301,7 +302,7 @@ bar_col_single <- function(p) all(vapply(p$layers[layer_idx(p, "GeomLinerange")]
                                          function(l) identical(l$aes_params$colour, "#72B1D4"), TRUE))
 for (nm in c("p_gap", "p_up", "p_bt", "p_wage")) {
   p <- get(nm)
-  check(tmpl_ok(p), sprintf("%s: reference theme (serif 32/10/11/8.8/8.5 pt, grey30/grey15, lineheight 1.15, margins 8/12/8/24 pt, no grid, black 0.35 axes)", nm))
+  check(tmpl_ok(p), sprintf("%s: theme (serif 24/16/13/13/12 pt title/axis/ticks/legend/Notes, no subtitle, grey15 Notes, lineheight 1.15, margins 8/12/8/24 pt, no grid, black 0.35 axes)", nm))
   check(lines_ok(p), sprintf("%s: zero line #4D4D4D and onset #8C8C8C, dashed 0.4", nm))
   check(pt_ok(p, nm != "p_bt"), sprintf("%s: points size 2.0, stroke 0.4, border #262626%s", nm,
                                          if (nm != "p_bt") ", circle 21" else ""))
@@ -319,64 +320,70 @@ check(identical(sv("fill"), c("#0072B2", "#D55E00")) && identical(sv("colour"), 
 lab_is <- function(p, want) all(vapply(names(want), function(k)
   identical(if (k == "title") unwrap(p$labels[[k]]) else p$labels[[k]], want[[k]]), TRUE))
 bars_line <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
-check(lab_is(p_gap, list(
-  title = "Dual VET narrows the youth-adult crime gap",
-  subtitle = "Effect on the 16–25 minus 36–45 crime-rate gap.",
-  y = "Gap, crimes per 1,000 residents", x = "Years relative to dual-VET adoption")) &&
+nese_line <- "The outcome is the number of vulnerable (NESE-B) students enrolled in preschool (Infantil)."
+no_sub <- function(p) is.null(p$labels$subtitle)
+check(no_sub(p_gap) && lab_is(p_gap, list(
+  title = "Youth\u2013Adult Crime Gap: Event Study",
+  y = "Effect on Crime-Rate Gap (per 1,000)", x = "Years relative to dual-VET adoption")) &&
   identical(notes_text(p_gap), paste(
     "Notes: Callaway and Sant'Anna event-study estimates with never-treated controls.",
     "The outcome is the gap between the 16–25 and 36–45 crime rates, in crimes per 1,000 residents.",
     "Estimates are normalized to zero in year -1.",
     "Post-period average: -17.1 per 1,000 (p = 0.011); pre-trend test p = 0.84.", bars_line)),
-  "crime gap: title, subtitle, axis labels and Notes (post avg -17.1, p 0.011, pre-trend 0.84)")
-check(lab_is(p_up, list(
-  title = "Continuous DiD – Infantil (published quotas; UP schools)",
-  subtitle = "Outcome: Effect on NESE-B number", y = "Effect on NESE-B number", x = "Year")) &&
+  "crime gap: outcome-first title, no subtitle, axis labels and Notes (ages 16–25 vs 36–45, post avg -17.1, p 0.011, pre-trend 0.84)")
+check(no_sub(p_up) && lab_is(p_up, list(
+  title = "Vulnerable Student Enrollment: Event Study",
+  y = "Effect on Vulnerable Enrollment (Students)", x = "Year")) &&
   identical(notes_text(p_up), paste(
-    "Notes: Continuous difference-in-differences event-study estimates for UP schools",
-    "(BCN public+charter; n = 311 UP schools). Baseline 2016–2018; quota year 2019;",
+    "Notes: Continuous difference-in-differences event-study estimates with published quotas for UP schools",
+    "(BCN public+charter; n = 311 UP schools).", nese_line, "Baseline 2016–2018; quota year 2019;",
     "estimates are relative to the reference year 2018. Filled markers: p < 0.05; hollow markers otherwise.",
     bars_line)),
-  "UP: original title, subtitle, axis labels; Notes with n = 311, baseline, quota/ref year, marker rule")
-check(lab_is(p_bt, list(
-  title = "Continuous DiD – Infantil (UP schools by type; published quotas)",
-  subtitle = "Outcome: Effect on NESE-B number", y = "Effect on NESE-B number", x = "Year")) &&
+  "UP: outcome-first title, no subtitle, axis labels; Notes with published quotas, NESE-B/preschool outcome, n = 311, baseline, quota/ref year, marker rule")
+check(no_sub(p_bt) && lab_is(p_bt, list(
+  title = "Vulnerable Student Enrollment by School Type: Event Study",
+  y = "Effect on Vulnerable Enrollment (Students)", x = "Year")) &&
   identical(notes_text(p_bt), paste(
-    "Notes: Continuous difference-in-differences event-study estimates for BCN UP-direction schools, by school type.",
+    "Notes: Continuous difference-in-differences event-study estimates with published quotas for BCN UP-direction",
+    "schools, by school type.", nese_line,
     "Baseline 2016–2018; quota year 2019; estimates are relative to the reference year 2018.",
     "Public: pre-avg +0.057, post-avg +1.259 (n=158). Charter: pre-avg -0.029, post-avg +0.399 (n=153).",
     bars_line)),
-  "by type: original title, subtitle, axis labels; Notes with printed averages and n")
-check(lab_is(p_wage, list(
-  title = "Callaway-Sant'Anna event study: Monthly Wage (EUR, midpoints)",
-  subtitle = "Binary dual-offer adoption | not-yet-treated controls | clustered at school",
-  y = "Effect on Monthly Wage (EUR, midpoints)", x = "Event time (years relative to dual adoption)")) &&
+  "by type: outcome-first title, no subtitle, axis labels; Notes with published quotas, NESE-B/preschool outcome, printed averages and n")
+check(no_sub(p_wage) && lab_is(p_wage, list(
+  title = "Monthly Earnings: Event Study",
+  y = "Effect on Monthly Earnings (EUR)", x = "Event time (years relative to dual adoption)")) &&
   identical(notes_text(p_wage), paste(
-    "Notes: Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period;",
+    "Notes: Callaway and Sant'Anna event-study estimates for binary dual-offer adoption, with",
+    "not-yet-treated controls and standard errors clustered at the school level.",
+    "The outcome is the monthly wage in EUR, coded at bracket midpoints.",
+    "Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period;",
     "deeper pre-periods come from later adopters.", bars_line)),
-  "wage: original title, subtitle, axis labels; Notes with ATT 39.731*** (SE 13.047), base period e = -1, 90%/95% sentence")
+  "wage: outcome-first title, no subtitle, axis labels; Notes with adoption/control/clustering/midpoints, ATT 39.731*** (SE 13.047), base period e = -1")
 four <- list(p_gap, p_up, p_bt, p_wage)
 title_lines <- lapply(four, function(p) strsplit(p$labels$title, "\n")[[1]])
 check(all(vapply(seq_along(four), function(j) {
   l <- title_lines[[j]]
-  all(nchar(l) <= TITLE_WIDTH) && identical(l, strwrap(unwrap(four[[j]]$labels$title), TITLE_WIDTH)) }, TRUE)) &&
-    TITLE_PT == 32 && TITLE_WIDTH == 36,
-  sprintf("titles: 32 pt, wrapped on word boundaries at <= 36 characters per line (words preserved; lines %s)",
+  length(l) <= 2L && all(nchar(l) <= TITLE_WIDTH) &&
+    identical(l, strwrap(unwrap(four[[j]]$labels$title), TITLE_WIDTH)) }, TRUE)) &&
+    TITLE_PT == 24 && TITLE_WIDTH == 70,
+  sprintf("titles: uniform 24 pt, word-wrapped at <= 70 characters, at most 2 lines (lines %s)",
           paste(lengths(title_lines), collapse = "/")))
-# Rendered width of the widest title line at 32 pt serif (ragg, as in save_fig)
-# must fit the 11 in canvas minus the 12 + 24 pt plot margins.
-tmp_png <- tempfile(fileext = ".png")
-ragg::agg_png(tmp_png, width = W_IN, height = H_IN, units = "in", res = DPI)
-title_w_in <- max(vapply(unlist(title_lines), function(s) grid::convertWidth(
-  grid::grobWidth(grid::textGrob(s, gp = grid::gpar(fontsize = TITLE_PT, fontfamily = "serif"))),
-  "in", valueOnly = TRUE), 1))
-invisible(dev.off()); unlink(tmp_png)
-check(title_w_in < W_IN - 36 / 72,
-      sprintf("titles: widest 32 pt line %.2f in < %.2f in available width (no horizontal clipping)",
-              title_w_in, W_IN - 36 / 72))
-check(all(vapply(four, function(p)
-  all(nchar(strsplit(p$labels$caption, "\n")[[1]]) <= 150), TRUE)),
-  "Notes lines wrapped at <= 150 characters")
+# Rendered widths (ragg, serif, as in save_fig) of every title line at 24 pt
+# and every Notes line at 12 pt must fit the 11 in canvas minus the 12 + 24 pt
+# plot margins (strict bound, without the renderer's 0.15 in allowance).
+avail_in <- W_IN - 36 / 72
+title_w_in <- max(text_width_in(unlist(title_lines), TITLE_PT))
+check(title_w_in < avail_in,
+      sprintf("titles: widest 24 pt line %.2f in < %.2f in available width (no horizontal clipping)",
+              title_w_in, avail_in))
+note_lines <- unlist(lapply(four, function(p) strsplit(p$labels$caption, "\n")[[1]]))
+notes_w_in <- max(text_width_in(note_lines, NOTES_PT))
+check(NOTES_PT == 12 && notes_w_in < avail_in &&
+        all(vapply(four, function(p) identical(p$labels$caption,
+          wrap_rendered(unwrap(p$labels$caption), NOTES_PT)), TRUE)),
+      sprintf("Notes: 12 pt, wrapped by rendered width; widest line %.2f in < %.2f in (no right clipping)",
+              notes_w_in, avail_in))
 all_text <- unlist(lapply(four, function(p) unlist(p$labels)))
 check(!any(grepl("FUENTE|NOTAS|pixel|px|source_|centre_xy|bar_core", all_text)),
       "no technical FUENTE/NOTAS footer text or implementation/source-pixel terms on the charts")

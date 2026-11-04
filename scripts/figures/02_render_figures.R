@@ -10,15 +10,20 @@
 #     the original pointwise normal 95% bars (see section 4). No coefficient or SE
 #     is derived from pixels.
 #
-# Template = the reference paper figure
+# Geometry/style template = the local paper figure
 #   Vocational/5_Package/2_Out/Figures/1_did_offer/01_did_validation/eventstudy_crpc_ctrl.png
 #   (make_es_fig() in 01_did_validation.R -> plot_event_study_paper_multi() in _helpers.R),
 # saved at 11 x 7.5 in, 300 dpi. The reference PNG is 3300 x 2434 because a
 # 184 px technical footer (FUENTE/NOTAS) is appended; the website figures are
 # the 3300 x 2250 figure without that footer.
-#   serif (Times); title 32 pt regular centred (wrapped at TITLE_WIDTH = 36 chars); subtitle 10 pt grey30; axis
-#   titles 11 pt; tick and legend text 8.8 pt; Notes 8.5 pt grey15, line height
-#   1.15, left aligned; plot margins 8/12/8/24 pt (t/r/b/l); white, no grid;
+# Naming and text hierarchy follow the author PDF reference (KiVA draft, 1 July
+# 2026, Appendix Figure F1, printed p. 55): outcome-first titles "<Outcome>:
+# Event Study", estimators and definitions in the Notes. Point sizes are a web
+# adaptation, not a copy of the PDF sizes (see README):
+#   serif (Times); title 24 pt regular centred (word-wrapped at TITLE_WIDTH = 70
+#   chars, at most 2 lines); no subtitle; axis titles 16 pt; tick and legend
+#   text 13 pt; Notes 12 pt grey15, line height 1.15, left aligned, wrapped by
+#   rendered width; plot margins 8/12/8/24 pt (t/r/b/l); white, no grid;
 #   black axes 0.35 mm; zero line #4D4D4D and onset line #8C8C8C dashed 0.4 mm.
 #   Series 1: circle (21) fill #0072B2, intervals #72B1D4; series 2: triangle
 #   (24) fill #D55E00, intervals #E7A672 (colours sampled from the reference).
@@ -48,39 +53,44 @@ img_dir  <- normalizePath(file.path(here, "..", "..", "img"))
 
 # ---- shared geometry: 3300 x 2250 px (11 x 7.5 in at 300 dpi) -------------------
 W_IN <- 11; H_IN <- 7.5; DPI <- 300
-BASE <- 11
+# Web-adaptation font sizes (pt), shared by all four figures.
+TITLE_PT <- 24; AXIS_PT <- 16; TICK_PT <- 13; LEGEND_PT <- 13; NOTES_PT <- 12
+TITLE_WIDTH <- 70              # title word-wrap width (chars); all titles fit on 1 line
 Z90  <- qnorm(0.95)            # 1.644854; used only for the added 90% bounds
 LW95 <- 0.4; LW90 <- 1.3       # thin 95%, thick 90%
 PT_SIZE <- 2.0; PT_STROKE <- 0.4; PT_BORDER <- "#262626"
 ZERO_COL <- "#4D4D4D"; ONSET_COL <- "#8C8C8C"; REF_LW <- 0.4
-TITLE_PT <- 32; TITLE_WIDTH <- 36   # 32 pt title; 36-char lines (2 lines each) fit the 11 in canvas
+MARGIN_PT <- c(8, 12, 8, 24)   # t/r/b/l
+# Width available to the title and Notes: canvas minus left/right plot margins,
+# less a 0.15 in safety allowance against glyph overhang.
+TEXT_W_IN <- W_IN - (MARGIN_PT[2] + MARGIN_PT[4]) / 72 - 0.15
 
 pal_fill <- c(Public = "#0072B2", Charter = "#D55E00")   # reference slots 1, 2
 pal_bar  <- c(Public = "#72B1D4", Charter = "#E7A672")
 pal_shp  <- c(Public = 21, Charter = 24)
 FILL1 <- unname(pal_fill[1]); BAR1 <- unname(pal_bar[1])
 
-theme_paper_serif <- function(base_size = BASE) {
-  theme_classic(base_size = base_size, base_family = "serif") +
+theme_paper_serif <- function() {
+  theme_classic(base_size = AXIS_PT, base_family = "serif") +
     theme(
       plot.background  = element_rect(fill = "white", colour = NA),
       panel.background = element_rect(fill = "white", colour = NA),
       panel.grid       = element_blank(),
       axis.line        = element_line(linewidth = 0.35, colour = "black"),
       axis.ticks       = element_line(linewidth = 0.35, colour = "black"),
-      axis.title       = element_text(size = base_size),
-      axis.text        = element_text(size = base_size * 0.8, colour = "black"),
-      plot.title       = element_text(size = TITLE_PT, hjust = 0.5, face = "plain"),
-      plot.subtitle    = element_text(size = base_size - 1, hjust = 0.5, colour = "grey30"),
-      plot.caption     = element_text(size = base_size - 2.5, hjust = 0, colour = "grey15",
+      axis.title       = element_text(size = AXIS_PT),
+      axis.text        = element_text(size = TICK_PT, colour = "black"),
+      plot.title       = element_text(size = TITLE_PT, hjust = 0.5, face = "plain",
+                                      margin = margin(b = 10)),
+      plot.caption     = element_text(size = NOTES_PT, hjust = 0, colour = "grey15",
                                       lineheight = 1.15, margin = margin(t = 10)),
       plot.title.position   = "plot",
       plot.caption.position = "plot",
-      plot.margin      = margin(8, 12, 8, 24),
+      plot.margin      = margin(MARGIN_PT[1], MARGIN_PT[2], MARGIN_PT[3], MARGIN_PT[4]),
       legend.position  = "bottom",
       legend.direction = "horizontal",
       legend.title     = element_blank(),
-      legend.text      = element_text(size = base_size * 0.8),
+      legend.text      = element_text(size = LEGEND_PT),
       legend.key       = element_blank(),
       legend.margin    = margin(0, 0, 0, 0),
       legend.box.spacing = unit(6, "pt")
@@ -90,10 +100,29 @@ theme_paper_serif <- function(base_size = BASE) {
 # Public Notes sentence. Computation (not shown on the charts): thin bars are the
 # saved 95% bounds verbatim; thick bars are estimate +/- qnorm(0.95) * saved SE.
 BARS_NOTE <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
-# "Notes:" paragraph, wrapped at 150 characters as in the reference.
-notes_of <- function(text, width = 150, bars = BARS_NOTE)
-  paste(strwrap(paste("Notes:", text, bars), width = width), collapse = "\n")
-# Titles wrapped on word boundaries so a long title never clips at 32 pt.
+# Rendered width (in) of each string at `size` pt serif, measured on a temporary
+# ragg device (the device used by save_fig); the caller's device is restored.
+text_width_in <- function(s, size) {
+  prev <- dev.cur(); tmp <- tempfile(fileext = ".png")
+  ragg::agg_png(tmp, width = W_IN, height = H_IN, units = "in", res = DPI)
+  on.exit({ dev.off(); unlink(tmp); if (prev > 1) dev.set(prev) })
+  vapply(s, function(x) grid::convertWidth(grid::grobWidth(grid::textGrob(
+    x, gp = grid::gpar(fontsize = size, fontfamily = "serif"))), "in", valueOnly = TRUE), 1)
+}
+# Greedy word wrap by rendered width: each line is as long as fits TEXT_W_IN.
+wrap_rendered <- function(s, size, max_in = TEXT_W_IN) {
+  words <- strsplit(s, " ", fixed = TRUE)[[1]]; lines <- character(0); cur <- ""
+  for (w in words) {
+    cand <- if (nzchar(cur)) paste(cur, w) else w
+    if (nzchar(cur) && text_width_in(cand, size) > max_in) { lines <- c(lines, cur); cur <- w }
+    else cur <- cand
+  }
+  paste(c(lines, cur), collapse = "\n")
+}
+# "Notes:" paragraph at NOTES_PT, wrapped by rendered width.
+notes_of <- function(text, bars = BARS_NOTE) wrap_rendered(paste("Notes:", text, bars), NOTES_PT)
+# Titles wrapped on word boundaries at TITLE_WIDTH characters (03_verify.R
+# measures the rendered lines at TITLE_PT and requires <= 2 lines that fit).
 wrap_title <- function(s, width = TITLE_WIDTH) paste(strwrap(s, width = width), collapse = "\n")
 
 # Saved 95% bounds verbatim; 90% bounds = est +/- qnorm(0.95) * saved SE.
@@ -121,7 +150,7 @@ ref_lines <- function(onset_x, zero_y = 0) list(
 # `zero_y` set the source-coordinate axes. `ci90 = FALSE` would drop the 90%
 # layer; all four figures use the default TRUE. Defaults reproduce the numeric
 # figures unchanged.
-plot_single <- function(df, x, onset_x, title, subtitle, xlab, ylab, caption,
+plot_single <- function(df, x, onset_x, title, xlab, ylab, caption,
                         hollow = rep(FALSE, nrow(df)), breaks = sort(unique(df[[x]])),
                         x_labels = waiver(), x_limits = range(df[[x]]) + c(-0.5, 0.5),
                         y_scale = NULL, zero_y = 0, ci90 = TRUE) {
@@ -135,7 +164,7 @@ plot_single <- function(df, x, onset_x, title, subtitle, xlab, ylab, caption,
                stroke = PT_STROKE) +
     scale_x_continuous(breaks = breaks, labels = x_labels, limits = x_limits, expand = c(0, 0)) +
     y_scale +
-    labs(title = wrap_title(title), subtitle = subtitle, x = xlab, y = ylab, caption = caption) +
+    labs(title = wrap_title(title), subtitle = NULL, x = xlab, y = ylab, caption = caption) +
     theme_paper_serif()
 }
 
@@ -153,31 +182,33 @@ gap_note <- sprintf(paste0(
   as.numeric(agg$post_avg_att), agg$post_avg_p, as.numeric(agg$pretest_wald_p))
 p_gap <- plot_single(
   gap, x = "event_time", onset_x = -0.5,
-  title = "Dual VET narrows the youth-adult crime gap",
-  subtitle = "Effect on the 16–25 minus 36–45 crime-rate gap.",
+  title = "Youth\u2013Adult Crime Gap: Event Study",
   xlab = "Years relative to dual-VET adoption",
-  ylab = "Gap, crimes per 1,000 residents",
+  ylab = "Effect on Crime-Rate Gap (per 1,000)",
   caption = notes_of(gap_note))
 save_fig(p_gap, "crime_youth_adult_gap_centered.png")
 
 # ============================================================================
 # 2. Reshuffling: pooled UP schools (continuous DiD, published quotas)
 # ============================================================================
+# Outcome definition shared by both enrollment figures (formerly the
+# "Infantil" title context and the "Outcome: Effect on NESE-B number" subtitle).
+NESE_NOTE <- paste0("The outcome is the number of vulnerable (NESE-B) students enrolled ",
+                    "in preschool (Infantil).")
 up <- read.csv(file.path(data_dir, "reshuffling_up_es.csv"), na.strings = c("NA", ""))
 up <- add_ci(up, "est", "ci_lo", "ci_hi")
 # Original marker semantics: filled = saved p < 0.05; hollow otherwise
 # (including the 2018 reference year, which has no p-value).
 up_sig <- !is.na(up$pval) & up$pval < 0.05
 up_note <- sprintf(paste0(
-  "Continuous difference-in-differences event-study estimates for UP schools ",
-  "(BCN public+charter; n = %d UP schools). Baseline 2016–2018; quota year 2019; ",
+  "Continuous difference-in-differences event-study estimates with published quotas for UP schools ",
+  "(BCN public+charter; n = %d UP schools). ", NESE_NOTE, " Baseline 2016–2018; quota year 2019; ",
   "estimates are relative to the reference year 2018. Filled markers: p < 0.05; hollow markers otherwise."),
   up$n_schools[1])
 p_up <- plot_single(
   up, x = "year", onset_x = 2018.5, hollow = !up_sig,
-  title = "Continuous DiD – Infantil (published quotas; UP schools)",
-  subtitle = "Outcome: Effect on NESE-B number",
-  xlab = "Year", ylab = "Effect on NESE-B number",
+  title = "Vulnerable Student Enrollment: Event Study",
+  xlab = "Year", ylab = "Effect on Vulnerable Enrollment (Students)",
   caption = notes_of(up_note))
 save_fig(p_up, "reshuffling_up.png")
 
@@ -191,8 +222,8 @@ n_by <- tapply(bt$n_schools, bt$school_type, `[`, 1)
 avg <- function(t, yrs) mean(bt$est[bt$school_type == t & bt$year %in% yrs])
 pre_yrs <- 2013:2018; post_yrs <- 2019:2024   # reproduces the original printed averages
 bt_note <- paste0(
-  "Continuous difference-in-differences event-study estimates for BCN UP-direction schools, by school type. ",
-  "Baseline 2016–2018; quota year 2019; estimates are relative to the reference year 2018. ",
+  "Continuous difference-in-differences event-study estimates with published quotas for BCN UP-direction ",
+  "schools, by school type. ", NESE_NOTE, " Baseline 2016–2018; quota year 2019; estimates are relative to the reference year 2018. ",
   sprintf("Public: pre-avg %+.3f, post-avg %+.3f (n=%d). Charter: pre-avg %+.3f, post-avg %+.3f (n=%d).",
           avg("Public", pre_yrs), avg("Public", post_yrs), n_by[["Public"]],
           avg("Charter", pre_yrs), avg("Charter", post_yrs), n_by[["Charter"]]))
@@ -209,9 +240,9 @@ p_bt <- ggplot(bt, aes(x = year, y = est, group = school_type)) +
   scale_fill_manual(values = pal_fill, name = NULL) +
   scale_shape_manual(values = pal_shp, name = NULL) +
   scale_x_continuous(breaks = 2013:2024, limits = c(2012.5, 2024.5), expand = c(0, 0)) +
-  labs(title = wrap_title("Continuous DiD – Infantil (UP schools by type; published quotas)"),
-       subtitle = "Outcome: Effect on NESE-B number",
-       x = "Year", y = "Effect on NESE-B number",
+  labs(title = wrap_title("Vulnerable Student Enrollment by School Type: Event Study"),
+       subtitle = NULL,
+       x = "Year", y = "Effect on Vulnerable Enrollment (Students)",
        caption = notes_of(bt_note)) +
   theme_paper_serif()
 save_fig(p_bt, "reshuffling_by_type.png")
@@ -277,6 +308,9 @@ wy <- vapply(geo$y_tick_centres_px, as.numeric, 1)    # names "120".."-40"
 onset_prof <- vapply(geo$onset_line_cols_profile, as.numeric, 1)
 wage_onset_x <- sum(as.numeric(names(onset_prof)) * onset_prof) / sum(onset_prof)
 wage_note <- paste0(
+  "Callaway and Sant'Anna event-study estimates for binary dual-offer adoption, with ",
+  "not-yet-treated controls and standard errors clustered at the school level. ",
+  "The outcome is the monthly wage in EUR, coded at bracket midpoints. ",
   "Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period; ",
   "deeper pre-periods come from later adopters.")
 p_wage <- plot_single(
@@ -285,9 +319,8 @@ p_wage <- plot_single(
   y_scale = scale_y_reverse(breaks = unname(wy), labels = names(wy),
                             limits = unname(wpanel[c("y1", "y0")]), expand = c(0, 0)),
   zero_y = wy[["0"]], ci90 = TRUE,
-  title = "Callaway-Sant'Anna event study: Monthly Wage (EUR, midpoints)",
-  subtitle = "Binary dual-offer adoption | not-yet-treated controls | clustered at school",
+  title = "Monthly Earnings: Event Study",
   xlab = "Event time (years relative to dual adoption)",
-  ylab = "Effect on Monthly Wage (EUR, midpoints)",
+  ylab = "Effect on Monthly Earnings (EUR)",
   caption = notes_of(wage_note))
 save_fig(p_wage, "crime_monthly_earnings_large.png")

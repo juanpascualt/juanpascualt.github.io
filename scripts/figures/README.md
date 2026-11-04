@@ -21,7 +21,7 @@ To point it at another location, set `FIG_DROPBOX_ROOT`.
 
 ## Template
 
-The four figures follow the reference paper figure
+Geometry and marks follow the local paper figure
 `Vocational/5_Package/2_Out/Figures/1_did_offer/01_did_validation/eventstudy_crpc_ctrl.png`
 (`make_es_fig()` in `01_did_validation.R`, which calls `plot_event_study_paper_multi()` in
 `_helpers.R`). That figure is saved at 11 × 7.5 in and 300 dpi. The reference PNG is
@@ -30,12 +30,8 @@ website figures are 3300 × 2250, without that footer. Rendering at the referenc
 physical size matters: at the previous 7.2 × 4.4 in canvas, text was about 1.53 times
 too large relative to the panel.
 
-* Serif (Times via ragg). Title 32 pt (raised from the reference's 12 pt for
-  legibility on the site), regular, centred, wrapped on word boundaries at 36
-  characters (each current title takes two lines; `03_verify.R` also measures the
-  widest rendered line against the canvas width). Subtitle 10 pt, grey30. Axis
-  titles 11 pt. Tick and legend text 8.8 pt. Notes 8.5 pt, grey15, line height 1.15,
-  left aligned, wrapped at 150 characters. Plot margins 8/12/8/24 pt (top/right/bottom/left).
+* Typography: see *Titles and type hierarchy* below (serif, 24/16/13/13/12 pt, no
+  subtitle). Plot margins 8/12/8/24 pt (top/right/bottom/left).
 * White background, no grid, black axes (0.35). Zero line `#4D4D4D` and onset line
   `#8C8C8C`, both dashed (0.4).
 * Points size 2.0, stroke 0.4, border `#262626`. Single series: circle (21), fill
@@ -54,24 +50,66 @@ too large relative to the panel.
   saved p < 0.05 and hollow otherwise (including the 2018 reference year). Crime-gap and
   by-type markers are all filled. The 90% bounds play no role in the fill rule.
 
+## Titles and type hierarchy
+
+Reference for naming and hierarchy: the author PDF
+<https://anacostaramon.github.io/papers/KiVA_draft.pdf> (KiVA draft, 1 July 2026),
+Appendix Figure F1, PDF page 56 (printed page 55). Its event-study panels are titled
+by outcome, e.g. "(b) Academic Upper Sec.: Event Study" and "(d) Earnings at Age 29:
+Event Study"; the estimator, sample, clustering and interval conventions are stated in
+the Notes, not in the titles. Typography measured in that PDF: panel captions 9.96 pt;
+inside the panels, axis labels 5.15 pt, ticks 4.11 pt, legend 4.94 pt; Notes 8.97 pt
+across both columns of panels.
+
+The website figures adopt that pattern as a deliberate **web adaptation**, not an
+exact copy of the PDF point sizes:
+
+* Titles: "<Outcome>: Event Study", no estimator names and no result claims.
+  "Monthly Earnings: Event Study"; "Youth–Adult Crime Gap: Event Study"; "Vulnerable
+  Student Enrollment: Event Study"; "Vulnerable Student Enrollment by School Type:
+  Event Study". Embedded in the PNG only.
+* Sizes (serif, Times via ragg), shared by all four figures: title 24 pt regular,
+  centred; axis titles 16 pt; tick labels 13 pt; legend 13 pt; Notes 12 pt, grey15,
+  line height 1.15, left aligned. No subtitle (`subtitle = NULL`, no grob drawn).
+* Rationale: each figure is a standalone 11 × 7.5 in image shown at roughly column
+  width on the site, not a quarter-page panel under a 9.96 pt caption. The PDF's inner
+  sizes (4–5 pt) would be illegible there, so all text is scaled up while keeping the
+  same ordering (title > axis titles > ticks ≈ legend, Notes near tick size). The
+  previous 32 pt title over 11 pt axis titles, 8.8 pt ticks and 8.5 pt Notes inverted
+  the proportions relative to the panels and is retired.
+* Titles are word-wrapped at 70 characters; all four currently fit on one line.
+  `03_verify.R` requires at most 2 lines, all at 24 pt, and measures the widest rendered
+  line against the canvas width minus margins (10.5 in).
+* Notes are wrapped by rendered width (greedy word wrap measured at 12 pt on the ragg
+  device, 0.15 in safety allowance); `03_verify.R` re-measures every line against 10.5 in.
+
 ## Text
 
-Titles, axis labels and the printed statistics of the original website figures are
-kept. Each figure has a left-aligned "Notes:" paragraph that describes its own
+Printed statistics of the original website figures are kept; the original titles and
+subtitles were replaced by the outcome-first titles above, and their estimator, sample
+and outcome information moved into the Notes. Each figure has a left-aligned "Notes:" paragraph that describes its own
 estimator and sample and ends with the same sentence, "Bars indicate 90% (thick) and
 95% (thin) confidence intervals." How the bounds are computed (saved 95% bounds verbatim;
 90% = estimate ± `qnorm(0.95)` × saved SE) is documented here and in the source
 comments, not on the public charts. No variable or cache names appear in the Notes.
 
-* Crime gap: subtitle "Effect on the 16–25 minus 36–45 crime-rate gap." The
-  post-period average (−17.1 per 1,000, p = 0.011) and the pre-trend test (p = 0.84)
+* Axis titles: y "Effect on Monthly Earnings (EUR)" (wage), "Effect on Crime-Rate Gap
+  (per 1,000)" (gap), "Effect on Vulnerable Enrollment (Students)" (both enrollment
+  figures). The x titles keep their original period meaning ("Event time (years
+  relative to dual adoption)", "Years relative to dual-VET adoption", "Year").
+* Crime gap: the former subtitle (16–25 minus 36–45 gap) is covered by the Notes
+  sentence defining the outcome. The post-period average (−17.1 per 1,000, p = 0.011) and the pre-trend test (p = 0.84)
   move from the subtitle into the Notes. The Notes add the estimator ("Callaway and
   Sant'Anna event-study estimates with never-treated controls."; source series
   `csdid_nt`, not printed) and the normalisation (year −1).
 * Pooled UP: the original note (BCN public+charter; baseline 2016–2018; quota year 2019,
   ref = 2018; n = 311; filled = p < 0.05) becomes a sentence-form Notes paragraph naming
-  the continuous difference-in-differences event study.
-* By type: the printed averages (Public +0.057 / +1.259, n = 158; Charter −0.029 / +0.399,
+  the continuous difference-in-differences event study with published quotas. The former
+  title context ("Infantil") and subtitle ("Outcome: Effect on NESE-B number") become the
+  Notes sentence "The outcome is the number of vulnerable (NESE-B) students enrolled in
+  preschool (Infantil)." The variable is unchanged; "UP" is not expanded.
+* By type: same estimator, published-quota and outcome sentences as pooled UP.
+  The printed averages (Public +0.057 / +1.259, n = 158; Charter −0.029 / +0.399,
   n = 153) and the baseline, quota and reference years are kept in full. The original
   note was clipped at the right edge of the image; its full text (quota year 2019,
   ref = 2018) is confirmed by the source.
@@ -135,7 +173,7 @@ so they are **not** used.
 | Crime gap | C&S never-treated, 95% bars | identical values and saved 95% bounds (thin), added 90% bars (thick); blue circles; post-average and pre-trend statistics moved to Notes (panel tag "(a)" dropped) |
 | UP | ribbon 95% CI; filled = p < 0.05 | identical values and saved 95% bounds as thin bars, added 90% thick bars; filled blue circle = p < 0.05 (reference year hollow, as before); original note as Notes |
 | By type | 95% bars, all markers filled | identical values and saved 95% bounds, added 90% bars; Public #0072B2 circle, Charter #D55E00 triangle; untitled bottom legend; Notes keep printed averages and n |
-| Wage | 1600×1050 raster, 95% bars, hollow = not significant | same ggplot template; centres and 95% bar endpoints at the original image coordinates (graphical reconstruction, no numbers derived); added 90% thick bars = 95% bars scaled by qnorm(0.95)/1.96 about the centre; same hollow markers; original title and ATT 39.731*** (SE 13.047) |
+| Wage | 1600×1050 raster, 95% bars, hollow = not significant | same ggplot template; centres and 95% bar endpoints at the original image coordinates (graphical reconstruction, no numbers derived); added 90% thick bars = 95% bars scaled by qnorm(0.95)/1.96 about the centre; same hollow markers; outcome-first title; ATT 39.731*** (SE 13.047) in Notes |
 
 ## Monthly wage figure (`img/crime_monthly_earnings_large.png`)
 
@@ -218,8 +256,12 @@ is recovered, and none is written to disk. The Notes keep only the original prin
 statistics.
 
 Fidelity is geometric at the original raster resolution, not numerical estimator
-exactness. Text keeps the original title, subtitle and axis labels; the Notes keep
-"Overall ATT: 39.731*** (SE 13.047)", state that e = −1 is the normalized base period
+exactness. Text: title "Monthly Earnings: Event Study", y axis "Effect on Monthly Earnings (EUR)".
+The former title/subtitle information moves to the Notes: Callaway and Sant'Anna
+estimates for binary dual-offer adoption, not-yet-treated controls, standard errors
+clustered at the school level, and the outcome "monthly wage in EUR, coded at bracket
+midpoints" (the original axis "Monthly Wage (EUR, midpoints)"; same variable). The Notes
+keep "Overall ATT: 39.731*** (SE 13.047)", state that e = −1 is the normalized base period
 and that deeper pre-periods come from later adopters, and end with the same sentence as
 the other figures, "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
 `03_verify.R` checks that each drawn centre and 95% bar endpoint equals the saved
