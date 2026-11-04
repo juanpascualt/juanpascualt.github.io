@@ -15,20 +15,24 @@
 #      saved endpoints, thick 90% = centre + qnorm(0.95)/1.96 x (95% endpoint -
 #      centre), checked with an independently written formula); hollow markers;
 #      tick positions/labels, panel limits and reference-line positions from
-#      wage_geometry.json; no coefficient/SE columns; printed statistics only.
+#      wage_geometry.json; no coefficient/SE columns.
 #   4. Template on all four: web-adaptation serif sizes (title 24, axis 16,
-#      ticks 13, legend 13, Notes 12 pt), no subtitle, outcome-first titles
-#      word-wrapped at 70 characters and measured to fit the canvas width in at
-#      most 2 lines, Notes lines measured to fit the same width, colours,
-#      margins, point shape/size/stroke, line widths, palette, and the exact
-#      title / axis / legend / Notes text.
+#      ticks 13, legend 13, Notes 12 pt), no subtitle, outcome titles (no
+#      ": Event Study") word-wrapped at 70 characters and measured to fit the
+#      canvas width in at most 2 lines, colours, margins, point
+#      shape/size/stroke, line widths, palette, and the exact title / axis /
+#      legend text. Explanatory Notes: exactly 3 explicit lines per figure
+#      (exact text; "Notes:" prefix on line 1; common line 3), each rendered
+#      line measured at 12 pt to fit the width; no technical statistics
+#      (ATT, SE, p-values, school counts, estimator names) on the charts.
 #   5. All four PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
 #      original website image at the fixed baseline commit BASELINE (not the
 #      moving HEAD), and the copies under static/img and public/img are
 #      byte-identical (sha256). A baseline blob that cannot be resolved is a
 #      FAIL, never a pass. The .paper-figures img rule has aspect-ratio 22 / 15
 #      in css/, static/css/ and public/css/style.css.
-#   6. Printed numbers reproduce those on the original figures.
+#   6. Archived statistics (printed on the original figures, documented in the
+#      README, no longer on the charts) are reproduced from the saved data.
 # Usage (repo root):  Rscript scripts/figures/03_verify.R
 suppressPackageStartupMessages({ library(ggplot2); library(jsonlite); library(digest) })
 
@@ -266,8 +270,8 @@ check(identical(-wl("GeomHline")$yintercept, wy_c[["0"]]) &&
 check(identical(sort(names(wage)), sort(c("event_time", "px_x", "est", "lo95", "hi95", "lo90", "hi90", "hollow"))),
       "wage: plotted data are image coordinates only (centre, 95% and derived 90% endpoints; no coefficient/SE columns)")
 wcap <- notes_text(p_wage)
-check(grepl("39.731*** (SE 13.047)", wcap, fixed = TRUE) && !grepl("14.329|18.721", wcap),
-      "wage: Notes keep original ATT 39.731*** (SE 13.047); no substituted SE/ATT")
+check(!grepl("ATT|SE|39\\.73|13\\.047|14\\.329|18\\.721", wcap),
+      "wage: explanatory Notes print no ATT/SE (archived original 39.731*** (SE 13.047) documented in README); no substituted SE/ATT")
 
 # ---- 4. reference template and wording ----------------------------------------
 el <- function(p, k) calc_element(k, p$theme)
@@ -319,49 +323,46 @@ check(identical(sv("fill"), c("#0072B2", "#D55E00")) && identical(sv("colour"), 
 
 lab_is <- function(p, want) all(vapply(names(want), function(k)
   identical(if (k == "title") unwrap(p$labels[[k]]) else p$labels[[k]], want[[k]]), TRUE))
-bars_line <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
-nese_line <- "The outcome is the number of vulnerable (NESE-B) students enrolled in preschool (Infantil)."
+# Explanatory Notes: exactly three explicit lines (line 1 starts "Notes: ";
+# line 3 is common to all four figures).
+bars_line <- paste("Bars show uncertainty: longer bars mean less precise estimates.",
+                   "Thick and thin bars mark the 90% and 95% confidence intervals.")
+up_line2 <- paste("Values are per extra pupil needed to meet a school's quota, relative to 2018.",
+                  "Only schools initially below quota are shown.")
+notes_are <- function(p, l1, l2) identical(p$labels$caption, paste(paste("Notes:", l1), l2, bars_line, sep = "\n"))
 no_sub <- function(p) is.null(p$labels$subtitle)
 check(no_sub(p_gap) && lab_is(p_gap, list(
-  title = "Youth\u2013Adult Crime Gap: Event Study",
+  title = "Youth–Adult Crime Gap",
   y = "Effect on Crime-Rate Gap (per 1,000)", x = "Years relative to dual-VET adoption")) &&
-  identical(notes_text(p_gap), paste(
-    "Notes: Callaway and Sant'Anna event-study estimates with never-treated controls.",
-    "The outcome is the gap between the 16–25 and 36–45 crime rates, in crimes per 1,000 residents.",
-    "Estimates are normalized to zero in year -1.",
-    "Post-period average: -17.1 per 1,000 (p = 0.011); pre-trend test p = 0.84.", bars_line)),
-  "crime gap: outcome-first title, no subtitle, axis labels and Notes (ages 16–25 vs 36–45, post avg -17.1, p 0.011, pre-trend 0.84)")
+  notes_are(p_gap,
+    "Dots show the estimated effect of company-based vocational training on the crime-rate gap between young people (16–25) and adults (36–45).",
+    "Year 0 marks local adoption. Values below zero indicate a smaller gap than in year -1, in crimes per 1,000 residents."),
+  "crime gap: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (ages 16-25 vs 36-45, year 0 adoption, ref year -1, per 1,000)")
 check(no_sub(p_up) && lab_is(p_up, list(
-  title = "Vulnerable Student Enrollment: Event Study",
+  title = "Vulnerable Student Enrollment",
   y = "Effect on Vulnerable Enrollment (Students)", x = "Year")) &&
-  identical(notes_text(p_up), paste(
-    "Notes: Continuous difference-in-differences event-study estimates with published quotas for UP schools",
-    "(BCN public+charter; n = 311 UP schools).", nese_line, "Baseline 2016–2018; quota year 2019;",
-    "estimates are relative to the reference year 2018. Filled markers: p < 0.05; hollow markers otherwise.",
-    bars_line)),
-  "UP: outcome-first title, no subtitle, axis labels; Notes with published quotas, NESE-B/preschool outcome, n = 311, baseline, quota/ref year, marker rule")
+  notes_are(p_up,
+    "Barcelona reserves preschool seats to reduce school segregation. Dots show the estimated change in vulnerable children's enrollment.",
+    up_line2),
+  "UP: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (reserved seats, per extra pupil to quota, ref 2018, initially below quota)")
 check(no_sub(p_bt) && lab_is(p_bt, list(
-  title = "Vulnerable Student Enrollment by School Type: Event Study",
+  title = "Vulnerable Student Enrollment by School Type",
   y = "Effect on Vulnerable Enrollment (Students)", x = "Year")) &&
-  identical(notes_text(p_bt), paste(
-    "Notes: Continuous difference-in-differences event-study estimates with published quotas for BCN UP-direction",
-    "schools, by school type.", nese_line,
-    "Baseline 2016–2018; quota year 2019; estimates are relative to the reference year 2018.",
-    "Public: pre-avg +0.057, post-avg +1.259 (n=158). Charter: pre-avg -0.029, post-avg +0.399 (n=153).",
-    bars_line)),
-  "by type: outcome-first title, no subtitle, axis labels; Notes with published quotas, NESE-B/preschool outcome, printed averages and n")
+  notes_are(p_bt,
+    "Dots show how Barcelona's seat quotas affect vulnerable children's enrollment in public and publicly funded private (charter) preschools.",
+    up_line2),
+  "by type: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (public vs charter, per extra pupil to quota, ref 2018)")
 check(no_sub(p_wage) && lab_is(p_wage, list(
-  title = "Monthly Earnings: Event Study",
+  title = "Monthly Earnings",
   y = "Effect on Monthly Earnings (EUR)", x = "Event time (years relative to dual adoption)")) &&
-  identical(notes_text(p_wage), paste(
-    "Notes: Callaway and Sant'Anna event-study estimates for binary dual-offer adoption, with",
-    "not-yet-treated controls and standard errors clustered at the school level.",
-    "The outcome is the monthly wage in EUR, coded at bracket midpoints.",
-    "Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period;",
-    "deeper pre-periods come from later adopters.", bars_line)),
-  "wage: outcome-first title, no subtitle, axis labels; Notes with adoption/control/clustering/midpoints, ATT 39.731*** (SE 13.047), base period e = -1")
+  notes_are(p_wage,
+    "Dots show the estimated effect of offering company-based vocational training in a school program on male graduates' monthly earnings, in euros.",
+    "Year 0 marks the first offer. Values are relative to the year before that offer; positive values indicate higher earnings."),
+  "wage: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (male graduates, first program offer, ref year before offer, euros)")
 four <- list(p_gap, p_up, p_bt, p_wage)
 title_lines <- lapply(four, function(p) strsplit(p$labels$title, "\n")[[1]])
+check(!any(grepl("Event Study", vapply(four, function(p) p$labels$title, ""), fixed = TRUE)),
+      "titles: no ': Event Study' suffix")
 check(all(vapply(seq_along(four), function(j) {
   l <- title_lines[[j]]
   length(l) <= 2L && all(nchar(l) <= TITLE_WIDTH) &&
@@ -377,13 +378,20 @@ title_w_in <- max(text_width_in(unlist(title_lines), TITLE_PT))
 check(title_w_in < avail_in,
       sprintf("titles: widest 24 pt line %.2f in < %.2f in available width (no horizontal clipping)",
               title_w_in, avail_in))
-note_lines <- unlist(lapply(four, function(p) strsplit(p$labels$caption, "\n")[[1]]))
-notes_w_in <- max(text_width_in(note_lines, NOTES_PT))
-check(NOTES_PT == 12 && notes_w_in < avail_in &&
-        all(vapply(four, function(p) identical(p$labels$caption,
-          wrap_rendered(unwrap(p$labels$caption), NOTES_PT)), TRUE)),
-      sprintf("Notes: 12 pt, wrapped by rendered width; widest line %.2f in < %.2f in (no right clipping)",
-              notes_w_in, avail_in))
+note_split <- lapply(four, function(p) strsplit(p$labels$caption, "\n", fixed = TRUE)[[1]])
+note_lines <- unlist(note_split)
+note_w <- text_width_in(note_lines, NOTES_PT)
+cat(sprintf("  Notes line %d.%d: %.3f in\n", rep(seq_along(four), lengths(note_split)),
+            sequence(lengths(note_split)), note_w), sep = "")
+check(NOTES_PT == 12 && all(lengths(note_split) == 3L) &&
+        all(vapply(note_split, function(l) startsWith(l[1], "Notes: ") && !any(grepl("Notes:", l[-1])) &&
+                     identical(l[3], bars_line), TRUE)),
+      "Notes: 12 pt, exactly 3 explicit lines per figure; 'Notes:' prefix on line 1 only; common line 3")
+check(all(note_w < avail_in) && all(note_w <= TEXT_W_IN),
+      sprintf("Notes: every rendered 12 pt line fits (widest %.2f in <= %.2f in renderer width < %.2f in available; no right clipping, no 4th line)",
+              max(note_w), TEXT_W_IN, avail_in))
+check(!any(grepl("ATT|\\bSE\\b|p [=<]|n ?= ?[0-9]|Callaway|Sant'Anna|NESE|pre-avg|post-avg|\\*\\*\\*", note_lines)),
+      "Notes: no technical statistics (ATT, SE, p-values, school counts, estimator names) on the charts")
 all_text <- unlist(lapply(four, function(p) unlist(p$labels)))
 check(!any(grepl("FUENTE|NOTAS|pixel|px|source_|centre_xy|bar_core", all_text)),
       "no technical FUENTE/NOTAS footer text or implementation/source-pixel terms on the charts")
@@ -447,12 +455,12 @@ check(all(grepl("aspect-ratio: 22 / 15;", rules, fixed = TRUE)) &&
 check(identical(sprintf("%+.3f", c(avg("Public", 2013:2018), avg("Public", 2019:2024),
                                    avg("Charter", 2013:2018), avg("Charter", 2019:2024))),
                 c("+0.057", "+1.259", "-0.029", "+0.399")),
-      "by type: pre/post averages reproduce original caption (+0.057, +1.259, -0.029, +0.399)")
+      "by type: archived pre/post averages reproduce original printed caption (+0.057, +1.259, -0.029, +0.399)")
 check(identical(as.integer(n_by[c("Public", "Charter")]), c(158L, 153L)) && up$n_schools[1] == 311,
-      "school counts reproduce originals (UP 311; public 158; charter 153)")
+      "archived school counts reproduce originals (UP 311; public 158; charter 153)")
 check(identical(c(sprintf("%.1f", as.numeric(agg$post_avg_att)), agg$post_avg_p,
                   sprintf("%.2f", as.numeric(agg$pretest_wald_p))), c("-17.1", "0.011", "0.84")),
-      "crime gap: post average / p / pre-test round to original subtitle (-17.1, 0.011, 0.84)")
+      "crime gap: archived post average / p / pre-test round to original subtitle (-17.1, 0.011, 0.84)")
 
 cat(sprintf("\n%d failure(s)\n", fails))
 quit(status = if (fails) 1L else 0L)

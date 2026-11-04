@@ -16,14 +16,19 @@
 # saved at 11 x 7.5 in, 300 dpi. The reference PNG is 3300 x 2434 because a
 # 184 px technical footer (FUENTE/NOTAS) is appended; the website figures are
 # the 3300 x 2250 figure without that footer.
-# Naming and text hierarchy follow the author PDF reference (KiVA draft, 1 July
-# 2026, Appendix Figure F1, printed p. 55): outcome-first titles "<Outcome>:
-# Event Study", estimators and definitions in the Notes. Point sizes are a web
+# Text hierarchy follows the author PDF reference (KiVA draft, 1 July 2026,
+# Appendix Figure F1, printed p. 55): titles name the outcome only (e.g.
+# "Monthly Earnings"; no ": Event Study" suffix, no estimator). The public Notes
+# are plain-language explanations for readers who have not read the paper:
+# exactly three explicit lines per figure (two figure-specific lines plus a
+# common line on the bars); technical statistics (ATT, SE, p-values, school
+# counts) are archived in the README, not printed. Point sizes are a web
 # adaptation, not a copy of the PDF sizes (see README):
 #   serif (Times); title 24 pt regular centred (word-wrapped at TITLE_WIDTH = 70
 #   chars, at most 2 lines); no subtitle; axis titles 16 pt; tick and legend
-#   text 13 pt; Notes 12 pt grey15, line height 1.15, left aligned, wrapped by
-#   rendered width; plot margins 8/12/8/24 pt (t/r/b/l); white, no grid;
+#   text 13 pt; Notes 12 pt grey15, line height 1.15, left aligned, three
+#   explicit lines (each measured to fit by 03_verify.R); plot margins
+#   8/12/8/24 pt (t/r/b/l); white, no grid;
 #   black axes 0.35 mm; zero line #4D4D4D and onset line #8C8C8C dashed 0.4 mm.
 #   Series 1: circle (21) fill #0072B2, intervals #72B1D4; series 2: triangle
 #   (24) fill #D55E00, intervals #E7A672 (colours sampled from the reference).
@@ -97,9 +102,10 @@ theme_paper_serif <- function() {
     )
 }
 
-# Public Notes sentence. Computation (not shown on the charts): thin bars are the
-# saved 95% bounds verbatim; thick bars are estimate +/- qnorm(0.95) * saved SE.
-BARS_NOTE <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
+# Common third Notes line. Computation (not shown on the charts): thin bars are
+# the saved 95% bounds verbatim; thick bars are estimate +/- qnorm(0.95) * saved SE.
+BARS_NOTE <- paste("Bars show uncertainty: longer bars mean less precise estimates.",
+                   "Thick and thin bars mark the 90% and 95% confidence intervals.")
 # Rendered width (in) of each string at `size` pt serif, measured on a temporary
 # ragg device (the device used by save_fig); the caller's device is restored.
 text_width_in <- function(s, size) {
@@ -119,8 +125,12 @@ wrap_rendered <- function(s, size, max_in = TEXT_W_IN) {
   }
   paste(c(lines, cur), collapse = "\n")
 }
-# "Notes:" paragraph at NOTES_PT, wrapped by rendered width.
-notes_of <- function(text, bars = BARS_NOTE) wrap_rendered(paste("Notes:", text, bars), NOTES_PT)
+# "Notes:" block at NOTES_PT: exactly three explicit lines (figure-specific
+# line1 and line2, then the common BARS_NOTE), no automatic wrapping.
+# 03_verify.R measures each rendered line against the available width.
+# (wrap_rendered above is no longer used for the Notes.)
+notes_of <- function(line1, line2, bars = BARS_NOTE)
+  paste(paste("Notes:", line1), line2, bars, sep = "\n")
 # Titles wrapped on word boundaries at TITLE_WIDTH characters (03_verify.R
 # measures the rendered lines at TITLE_PT and requires <= 2 lines that fit).
 wrap_title <- function(s, width = TITLE_WIDTH) paste(strwrap(s, width = width), collapse = "\n")
@@ -174,42 +184,42 @@ plot_single <- function(df, x, onset_x, title, xlab, ylab, caption,
 gap <- read.csv(file.path(data_dir, "crime_gap_es.csv"), na.strings = "NA")
 agg <- fromJSON(file.path(data_dir, "crime_gap_aggregate.json"))
 gap <- add_ci(gap, "att", "ci_lower", "ci_upper")
-gap_note <- sprintf(paste0(
-  "Callaway and Sant'Anna event-study estimates with never-treated controls. ",  # estimator == "csdid_nt"
-  "The outcome is the gap between the 16–25 and 36–45 crime rates, in crimes per 1,000 residents. ",
-  "Estimates are normalized to zero in year -1. ",
-  "Post-period average: %.1f per 1,000 (p = %s); pre-trend test p = %.2f."),
-  as.numeric(agg$post_avg_att), agg$post_avg_p, as.numeric(agg$pretest_wald_p))
+# Public Notes (plain language). The post-period average and pre-trend test in
+# `agg` are archived in the README and checked in 03_verify.R, not printed.
+gap_note <- c(
+  "Dots show the estimated effect of company-based vocational training on the crime-rate gap between young people (16\u201325) and adults (36\u201345).",
+  "Year 0 marks local adoption. Values below zero indicate a smaller gap than in year -1, in crimes per 1,000 residents.")
 p_gap <- plot_single(
   gap, x = "event_time", onset_x = -0.5,
-  title = "Youth\u2013Adult Crime Gap: Event Study",
+  title = "Youth\u2013Adult Crime Gap",
   xlab = "Years relative to dual-VET adoption",
   ylab = "Effect on Crime-Rate Gap (per 1,000)",
-  caption = notes_of(gap_note))
+  caption = notes_of(gap_note[1], gap_note[2]))
 save_fig(p_gap, "crime_youth_adult_gap_centered.png")
 
 # ============================================================================
 # 2. Reshuffling: pooled UP schools (continuous DiD, published quotas)
 # ============================================================================
-# Outcome definition shared by both enrollment figures (formerly the
-# "Infantil" title context and the "Outcome: Effect on NESE-B number" subtitle).
-NESE_NOTE <- paste0("The outcome is the number of vulnerable (NESE-B) students enrolled ",
-                    "in preschool (Infantil).")
+# Public Notes line 2 shared by both enrollment figures. Plain-language reading
+# of the coefficient: enrolled vulnerable (NESE-B, Infantil) pupils per unit of
+# treat_nb (corrected reserved-seat quota minus baseline 2016-18 mean vulnerable
+# enrollment), reference year 2018; "initially below quota" approximates the UP
+# group (below baseline quota, 0.5 pp band).
+UP_LINE2 <- paste("Values are per extra pupil needed to meet a school's quota, relative to 2018.",
+                  "Only schools initially below quota are shown.")
 up <- read.csv(file.path(data_dir, "reshuffling_up_es.csv"), na.strings = c("NA", ""))
 up <- add_ci(up, "est", "ci_lo", "ci_hi")
 # Original marker semantics: filled = saved p < 0.05; hollow otherwise
 # (including the 2018 reference year, which has no p-value).
 up_sig <- !is.na(up$pval) & up$pval < 0.05
-up_note <- sprintf(paste0(
-  "Continuous difference-in-differences event-study estimates with published quotas for UP schools ",
-  "(BCN public+charter; n = %d UP schools). ", NESE_NOTE, " Baseline 2016–2018; quota year 2019; ",
-  "estimates are relative to the reference year 2018. Filled markers: p < 0.05; hollow markers otherwise."),
-  up$n_schools[1])
+up_note <- c(
+  "Barcelona reserves preschool seats to reduce school segregation. Dots show the estimated change in vulnerable children's enrollment.",
+  UP_LINE2)
 p_up <- plot_single(
   up, x = "year", onset_x = 2018.5, hollow = !up_sig,
-  title = "Vulnerable Student Enrollment: Event Study",
+  title = "Vulnerable Student Enrollment",
   xlab = "Year", ylab = "Effect on Vulnerable Enrollment (Students)",
-  caption = notes_of(up_note))
+  caption = notes_of(up_note[1], up_note[2]))
 save_fig(p_up, "reshuffling_up.png")
 
 # ============================================================================
@@ -221,12 +231,11 @@ bt$school_type <- factor(bt$school_type, levels = c("Public", "Charter"))
 n_by <- tapply(bt$n_schools, bt$school_type, `[`, 1)
 avg <- function(t, yrs) mean(bt$est[bt$school_type == t & bt$year %in% yrs])
 pre_yrs <- 2013:2018; post_yrs <- 2019:2024   # reproduces the original printed averages
-bt_note <- paste0(
-  "Continuous difference-in-differences event-study estimates with published quotas for BCN UP-direction ",
-  "schools, by school type. ", NESE_NOTE, " Baseline 2016–2018; quota year 2019; estimates are relative to the reference year 2018. ",
-  sprintf("Public: pre-avg %+.3f, post-avg %+.3f (n=%d). Charter: pre-avg %+.3f, post-avg %+.3f (n=%d).",
-          avg("Public", pre_yrs), avg("Public", post_yrs), n_by[["Public"]],
-          avg("Charter", pre_yrs), avg("Charter", post_yrs), n_by[["Charter"]]))
+# Public Notes (plain language). The printed pre/post averages and school counts
+# (avg(), n_by) are archived in the README and checked in 03_verify.R.
+bt_note <- c(
+  "Dots show how Barcelona's seat quotas affect vulnerable children's enrollment in public and publicly funded private (charter) preschools.",
+  UP_LINE2)
 pos <- position_dodge(width = 0.4)
 p_bt <- ggplot(bt, aes(x = year, y = est, group = school_type)) +
   ref_lines(2018.5) +
@@ -240,10 +249,10 @@ p_bt <- ggplot(bt, aes(x = year, y = est, group = school_type)) +
   scale_fill_manual(values = pal_fill, name = NULL) +
   scale_shape_manual(values = pal_shp, name = NULL) +
   scale_x_continuous(breaks = 2013:2024, limits = c(2012.5, 2024.5), expand = c(0, 0)) +
-  labs(title = wrap_title("Vulnerable Student Enrollment by School Type: Event Study"),
+  labs(title = wrap_title("Vulnerable Student Enrollment by School Type"),
        subtitle = NULL,
        x = "Year", y = "Effect on Vulnerable Enrollment (Students)",
-       caption = notes_of(bt_note)) +
+       caption = notes_of(bt_note[1], bt_note[2])) +
   theme_paper_serif()
 save_fig(p_bt, "reshuffling_by_type.png")
 
@@ -307,20 +316,21 @@ wx <- vapply(geo$x_tick_centres_px, as.numeric, 1)    # names "-6".."6"
 wy <- vapply(geo$y_tick_centres_px, as.numeric, 1)    # names "120".."-40"
 onset_prof <- vapply(geo$onset_line_cols_profile, as.numeric, 1)
 wage_onset_x <- sum(as.numeric(names(onset_prof)) * onset_prof) / sum(onset_prof)
-wage_note <- paste0(
-  "Callaway and Sant'Anna event-study estimates for binary dual-offer adoption, with ",
-  "not-yet-treated controls and standard errors clustered at the school level. ",
-  "The outcome is the monthly wage in EUR, coded at bracket midpoints. ",
-  "Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period; ",
-  "deeper pre-periods come from later adopters.")
+# Public Notes (plain language): historical producer used male graduates
+# (sex == 1); first offer = first adoption of dual training by a program within
+# a school (cid x dgid x dgsup); reference e = -1. The printed overall ATT
+# 39.731*** (SE 13.047) of the original raster is archived in the README.
+wage_note <- c(
+  "Dots show the estimated effect of offering company-based vocational training in a school program on male graduates' monthly earnings, in euros.",
+  "Year 0 marks the first offer. Values are relative to the year before that offer; positive values indicate higher earnings.")
 p_wage <- plot_single(
   wage, x = "px_x", onset_x = wage_onset_x, hollow = wage$hollow,
   breaks = unname(wx), x_labels = names(wx), x_limits = unname(wpanel[c("x0", "x1")]),
   y_scale = scale_y_reverse(breaks = unname(wy), labels = names(wy),
                             limits = unname(wpanel[c("y1", "y0")]), expand = c(0, 0)),
   zero_y = wy[["0"]], ci90 = TRUE,
-  title = "Monthly Earnings: Event Study",
+  title = "Monthly Earnings",
   xlab = "Event time (years relative to dual adoption)",
   ylab = "Effect on Monthly Earnings (EUR)",
-  caption = notes_of(wage_note))
+  caption = notes_of(wage_note[1], wage_note[2]))
 save_fig(p_wage, "crime_monthly_earnings_large.png")
