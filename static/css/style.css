@@ -414,11 +414,11 @@ img {
 
 .paper-title {
     font-family: var(--font-serif);
-    font-size: clamp(1.625rem, 2.6vw, 2rem);
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 500;
     color: var(--color-text);
     margin-bottom: 0.5rem;
-    line-height: 1.25;
+    line-height: 1.4;
 }
 
 .paper-authors {
@@ -697,54 +697,17 @@ img {
     margin: var(--spacing-md) 0;
 }
 
-.paper-figure {
-    margin: 0;
-    min-width: 0; /* let grid cells shrink instead of overflowing */
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.paper-figure-caption {
-    font-family: var(--font-sans);
-    font-size: 1.125rem; /* 18px: charts are scaled down, so the readable title lives in HTML */
-    font-weight: 600;
-    line-height: 1.35;
-    color: var(--color-text);
-}
-
-.paper-figure-image {
-    display: block;
-    cursor: zoom-in;
-}
-
 .paper-figures img {
     width: 100%;
     height: auto;
     aspect-ratio: 22 / 15; /* shared frame so cards match despite different intrinsic sizes */
     object-fit: contain; /* letterbox inside the white canvas; never crop or distort */
-    background-color: #ffffff; /* charts keep a white canvas in both themes */
-    padding: 0;
-    border: 1px solid var(--color-border);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     border-radius: 4px;
+    background-color: #ffffff; /* charts keep a white canvas in both themes */
+    padding: 0;    border: 1px solid var(--color-border);    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);    border-radius: 4px;
 }
 
-.paper-figure-link {
-    align-self: flex-start;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--color-link);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
-
-.paper-figure-link:hover {
-    color: var(--color-link-hover);
-}
-
-/* One column up to tablet width (incl. 779px side panels) so charts stay large */
-@media (max-width: 800px) {
+@media (max-width: 600px) {
     .paper-figures {
         grid-template-columns: 1fr;
     }

@@ -11,11 +11,14 @@
 #   3b. Monthly wage (graphical reconstruction): archived original's sha256 and
 #      baseline identity; every drawn centre and 95% bar endpoint equals the
 #      saved source image coordinate for its event time (after scale_y_reverse);
-#      no bar at e = -1; one 95% layer, no 90% layer; hollow markers; tick
-#      positions/labels, panel limits and reference-line positions from
+#      no 95% or 90% bar at e = -1; exactly two interval layers (thin 95% =
+#      saved endpoints, thick 90% = centre + qnorm(0.95)/1.96 x (95% endpoint -
+#      centre), checked with an independently written formula); hollow markers;
+#      tick positions/labels, panel limits and reference-line positions from
 #      wage_geometry.json; no coefficient/SE columns; printed statistics only.
 #   4. Template of the reference figure (eventstudy_crpc_ctrl.png) on all four:
-#      serif font sizes (title 16 pt, wrapped on word boundaries), colours,
+#      serif font sizes (title 32 pt, wrapped on word boundaries at 36
+#      characters and measured to fit the canvas width), colours,
 #      margins, point shape/size/stroke, line widths, palette, and the exact
 #      title / subtitle / axis / legend / Notes text.
 #   5. All four PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
@@ -185,7 +188,9 @@ check(!any(c("output", "output_sha256", "class_colours", "font", "font_px", "not
       "wage_geometry.json: measured source fields only (no raster-output hash, recolour or PIL text fields); method documented")
 wb <- ggplot_build(p_wage)
 wl <- function(cls) { i <- layer_idx(p_wage, cls); stopifnot(length(i) == 1); wb$data[[i]] }
-wpt <- wl("GeomPoint"); wbar <- wl("GeomLinerange")
+wpt <- wl("GeomPoint")
+wl_i <- function(i) { stopifnot(length(i) == 1); wb$data[[i]] }
+wbar <- wl_i(range_idx(p_wage, 0.4)); wbar90 <- wl_i(range_idx(p_wage, 1.3))
 et <- vapply(gj$markers, function(m) as.integer(m$event_time), 1L)
 cx <- vapply(gj$markers, function(m) m$centre_xy[[1]], 1); cy <- vapply(gj$markers, function(m) m$centre_xy[[2]], 1)
 has_bar <- !vapply(gj$markers, function(m) is.null(m$bar_core_rows_top_bottom), TRUE)
@@ -208,8 +213,39 @@ check(nrow(wbar) == 12L && !anyNA(mb) && identical(wbar$x[mb], cx[has_bar]) &&
 check(!identical(w_top, rev(top)) && !identical(w_bot, rev(bot)),
       "wage: endpoint comparison rejects a permuted copy")
 n_int_w <- vapply(interval_geoms, function(g) length(layer_idx(p_wage, g)), 1L)
-check(sum(n_int_w) == 1L && length(range_idx(p_wage, 0.4)) == 1L && length(range_idx(p_wage, 1.3)) == 0L,
-      "wage: exactly one interval layer (thin 0.4 = original 95%); no 90% layer")
+check(identical(unname(n_int_w[["GeomLinerange"]]), 2L) && sum(n_int_w) == 2L &&
+        length(range_idx(p_wage, 0.4)) == 1L && length(range_idx(p_wage, 1.3)) == 1L &&
+        max(range_idx(p_wage, 0.4)) < min(range_idx(p_wage, 1.3)),
+      "wage: exactly two interval layers (thin 0.4 = original 95%, thick 1.3 = 90%, 95% drawn first)")
+# 90% bars. The historical producer (5_Package @ 96eec10, 08_survey_outcomes.R
+# l. 511-517) drew the 95% bars as att -/+ 1.96 * bootstrap se (cband = FALSE),
+# so a pointwise normal 90% bar is the 95% bar shrunk about the centre by
+# qnorm(0.95) / 1.96. Written here as a weighted average, independently of the
+# renderer's est + r * (lo95 - est).
+R90 <- qnorm(0.95) / 1.96
+check(isTRUE(all.equal(R90, 0.83921103, tolerance = 1e-8)) && isTRUE(all.equal(WAGE90_RATIO, R90, tolerance = 0)),
+      sprintf("wage: 90/95 half-length ratio qnorm(0.95)/1.96 = %.8f (renderer WAGE90_RATIO identical)", R90))
+wbar90 <- wbar90[!is.na(wbar90$ymin) & !is.na(wbar90$ymax), ]
+m90 <- match(et[has_bar], key_of(wbar90$x))
+ctr <- cy[has_bar]
+top90 <- (1 - R90) * ctr + R90 * top; bot90 <- (1 - R90) * ctr + R90 * bot
+w_top90 <- pmin(-wbar90$ymin, -wbar90$ymax)[m90]; w_bot90 <- pmax(-wbar90$ymin, -wbar90$ymax)[m90]
+check(nrow(wbar90) == 12L && !anyNA(m90) && !anyDuplicated(key_of(wbar90$x)) &&
+        identical(wbar90$x[m90], cx[has_bar]) &&
+        isTRUE(all.equal(w_top90, top90, tolerance = 1e-12)) &&
+        isTRUE(all.equal(w_bot90, bot90, tolerance = 1e-12)) &&
+        isTRUE(all.equal((ctr - w_top90) / (ctr - top), rep(R90, 12), tolerance = 1e-12)) &&
+        isTRUE(all.equal((w_bot90 - ctr) / (bot - ctr), rep(R90, 12), tolerance = 1e-12)),
+      "wage: each 90% bar = centre + qnorm(0.95)/1.96 x (saved 95% endpoint - centre), both sides (12 bars; none at e = -1)")
+check(all(w_top90 > top & w_bot90 < bot & w_top90 < ctr & w_bot90 > ctr),
+      "wage: every 90% bar lies strictly inside its 95% bar and contains the centre")
+check(!isTRUE(all.equal(w_top90, top, tolerance = 1e-12)) &&
+        !isTRUE(all.equal(w_top90, rev(top90), tolerance = 1e-12)),
+      "wage: 90% check rejects bars equal to the 95% endpoints and a permuted copy")
+check(!any(is.finite(wage$lo95[wage$event_time == -1]), is.finite(wage$hi95[wage$event_time == -1]),
+           is.finite(wage$lo90[wage$event_time == -1]), is.finite(wage$hi90[wage$event_time == -1])) &&
+        !any(key_of(wbar$x) == -1L) && !any(key_of(wbar90$x) == -1L),
+      "wage: e = -1 reference has NA 95% and 90% bounds and no drawn bar")
 hol <- vapply(gj$markers, function(m) isTRUE(m$hollow), TRUE)
 check(identical(et[hol], as.integer(unlist(gj$hollow_markers_at_event_time))) &&
         identical(et[hol], c(-6:-1, 1L)) &&
@@ -226,11 +262,11 @@ onp <- vapply(gj$onset_line_cols_profile, as.numeric, 1)
 check(identical(-wl("GeomHline")$yintercept, wy_c[["0"]]) &&
         identical(wl("GeomVline")$xintercept, sum(as.numeric(names(onp)) * onp) / sum(onp)),
       "wage: zero line at saved y tick '0'; onset at weighted centroid of saved onset profile")
-check(identical(sort(names(wage)), sort(c("event_time", "px_x", "est", "lo95", "hi95", "hollow"))),
-      "wage: plotted data are image coordinates only (no coefficient/SE/90% columns)")
+check(identical(sort(names(wage)), sort(c("event_time", "px_x", "est", "lo95", "hi95", "lo90", "hi90", "hollow"))),
+      "wage: plotted data are image coordinates only (centre, 95% and derived 90% endpoints; no coefficient/SE columns)")
 wcap <- notes_text(p_wage)
-check(grepl("39.731*** (SE 13.047)", wcap, fixed = TRUE) && !grepl("14.329|18.721|90%", wcap),
-      "wage: Notes keep original ATT 39.731*** (SE 13.047); no new SE/ATT, no 90%")
+check(grepl("39.731*** (SE 13.047)", wcap, fixed = TRUE) && !grepl("14.329|18.721", wcap),
+      "wage: Notes keep original ATT 39.731*** (SE 13.047); no substituted SE/ATT")
 
 # ---- 4. reference template and wording ----------------------------------------
 el <- function(p, k) calc_element(k, p$theme)
@@ -240,7 +276,7 @@ tmpl_ok <- function(p) {
       (is.null(colour) || identical(e$colour, colour)) && (is.null(hjust) || identical(e$hjust, hjust))
   }
   mg <- p$theme$plot.margin
-  t("plot.title", 16, hjust = 0.5) && identical(el(p, "plot.title")$face, "plain") &&
+  t("plot.title", 32, hjust = 0.5) && identical(el(p, "plot.title")$face, "plain") &&
     t("plot.subtitle", 10, "grey30", 0.5) && t("axis.title.x", 11) && t("axis.title.y", 11) &&
     t("axis.text.x", 8.8, "black") && t("axis.text.y", 8.8, "black") && t("legend.text", 8.8) &&
     t("plot.caption", 8.5, "grey15", 0) && identical(el(p, "plot.caption")$lineheight, 1.15) &&
@@ -265,7 +301,7 @@ bar_col_single <- function(p) all(vapply(p$layers[layer_idx(p, "GeomLinerange")]
                                          function(l) identical(l$aes_params$colour, "#72B1D4"), TRUE))
 for (nm in c("p_gap", "p_up", "p_bt", "p_wage")) {
   p <- get(nm)
-  check(tmpl_ok(p), sprintf("%s: reference theme (serif 16/10/11/8.8/8.5 pt, grey30/grey15, lineheight 1.15, margins 8/12/8/24 pt, no grid, black 0.35 axes)", nm))
+  check(tmpl_ok(p), sprintf("%s: reference theme (serif 32/10/11/8.8/8.5 pt, grey30/grey15, lineheight 1.15, margins 8/12/8/24 pt, no grid, black 0.35 axes)", nm))
   check(lines_ok(p), sprintf("%s: zero line #4D4D4D and onset #8C8C8C, dashed 0.4", nm))
   check(pt_ok(p, nm != "p_bt"), sprintf("%s: points size 2.0, stroke 0.4, border #262626%s", nm,
                                          if (nm != "p_bt") ", circle 21" else ""))
@@ -317,14 +353,27 @@ check(lab_is(p_wage, list(
   y = "Effect on Monthly Wage (EUR, midpoints)", x = "Event time (years relative to dual adoption)")) &&
   identical(notes_text(p_wage), paste(
     "Notes: Overall ATT: 39.731*** (SE 13.047). e = \u22121 is the normalized base period;",
-    "deeper pre-periods come from later adopters. Bars show 95% confidence intervals.")),
-  "wage: original title, subtitle, axis labels; Notes with ATT 39.731*** (SE 13.047), base period e = -1, 95% only")
+    "deeper pre-periods come from later adopters.", bars_line)),
+  "wage: original title, subtitle, axis labels; Notes with ATT 39.731*** (SE 13.047), base period e = -1, 90%/95% sentence")
 four <- list(p_gap, p_up, p_bt, p_wage)
-check(all(vapply(four, function(p) {
-  l <- strsplit(p$labels$title, "\n")[[1]]
-  all(nchar(l) <= TITLE_WIDTH) && identical(l, strwrap(unwrap(p$labels$title), TITLE_WIDTH)) }, TRUE)) &&
-    TITLE_PT == 16 && TITLE_WIDTH <= 65,
-  "titles: 16 pt, wrapped on word boundaries at <= 65 characters per line (words preserved)")
+title_lines <- lapply(four, function(p) strsplit(p$labels$title, "\n")[[1]])
+check(all(vapply(seq_along(four), function(j) {
+  l <- title_lines[[j]]
+  all(nchar(l) <= TITLE_WIDTH) && identical(l, strwrap(unwrap(four[[j]]$labels$title), TITLE_WIDTH)) }, TRUE)) &&
+    TITLE_PT == 32 && TITLE_WIDTH == 36,
+  sprintf("titles: 32 pt, wrapped on word boundaries at <= 36 characters per line (words preserved; lines %s)",
+          paste(lengths(title_lines), collapse = "/")))
+# Rendered width of the widest title line at 32 pt serif (ragg, as in save_fig)
+# must fit the 11 in canvas minus the 12 + 24 pt plot margins.
+tmp_png <- tempfile(fileext = ".png")
+ragg::agg_png(tmp_png, width = W_IN, height = H_IN, units = "in", res = DPI)
+title_w_in <- max(vapply(unlist(title_lines), function(s) grid::convertWidth(
+  grid::grobWidth(grid::textGrob(s, gp = grid::gpar(fontsize = TITLE_PT, fontfamily = "serif"))),
+  "in", valueOnly = TRUE), 1))
+invisible(dev.off()); unlink(tmp_png)
+check(title_w_in < W_IN - 36 / 72,
+      sprintf("titles: widest 32 pt line %.2f in < %.2f in available width (no horizontal clipping)",
+              title_w_in, W_IN - 36 / 72))
 check(all(vapply(four, function(p)
   all(nchar(strsplit(p$labels$caption, "\n")[[1]]) <= 150), TRUE)),
   "Notes lines wrapped at <= 150 characters")
@@ -333,8 +382,13 @@ check(!any(grepl("FUENTE|NOTAS|pixel|px|source_|centre_xy|bar_core", all_text)),
       "no technical FUENTE/NOTAS footer text or implementation/source-pixel terms on the charts")
 src <- readLines(file.path(fig_here, "02_render_figures.R"), encoding = "UTF-8")
 code <- sub("#.*$", "", src)
-check(!any(grepl("qnorm\\(0\\.975\\)|1\\.96", code)) && sum(grepl("qnorm\\(0\\.95\\)", code)) == 1L,
-      "renderer never recomputes 95% bounds; qnorm(0.95) used once (90% only)")
+# The only authorised 1.96 is the denominator of WAGE90_RATIO (the historical
+# producer's 95% multiplier); any other 1.96 or qnorm(0.975) would be a 95% recompute.
+l196 <- grep("1\\.96", code)
+check(!any(grepl("qnorm\\(0\\.975\\)", code)) && sum(grepl("qnorm\\(0\\.95\\)", code)) == 1L &&
+        length(l196) == 1L && grepl("^WAGE90_RATIO <- Z90 / 1\\.96\\s*$", code[l196]) &&
+        length(grep("WAGE90_RATIO", code)) == 3L,
+      "renderer never recomputes 95% bounds; qnorm(0.95) once; 1.96 only as WAGE90_RATIO denominator (wage 90% scaling)")
 
 # ---- 5. PNG size/dpi, change vs immutable baseline, site copies, CSS --------
 # (BASELINE and git_blob are defined at the top.)

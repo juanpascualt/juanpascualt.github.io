@@ -6,7 +6,9 @@
 #     data/wage_geometry.json and re-verified by 04_restyle_wage_raster.py. Its
 #     event-study estimates were never saved, so the panel is drawn in source
 #     pixel units (x right, y down -> scale_y_reverse) with the original tick
-#     positions and printed labels. No coefficient or SE is derived from pixels.
+#     positions and printed labels. Its 90% bars are a graphical re-expression of
+#     the original pointwise normal 95% bars (see section 4). No coefficient or SE
+#     is derived from pixels.
 #
 # Template = the reference paper figure
 #   Vocational/5_Package/2_Out/Figures/1_did_offer/01_did_validation/eventstudy_crpc_ctrl.png
@@ -14,7 +16,7 @@
 # saved at 11 x 7.5 in, 300 dpi. The reference PNG is 3300 x 2434 because a
 # 184 px technical footer (FUENTE/NOTAS) is appended; the website figures are
 # the 3300 x 2250 figure without that footer.
-#   serif (Times); title 16 pt regular centred (wrapped at TITLE_WIDTH chars); subtitle 10 pt grey30; axis
+#   serif (Times); title 32 pt regular centred (wrapped at TITLE_WIDTH = 36 chars); subtitle 10 pt grey30; axis
 #   titles 11 pt; tick and legend text 8.8 pt; Notes 8.5 pt grey15, line height
 #   1.15, left aligned; plot margins 8/12/8/24 pt (t/r/b/l); white, no grid;
 #   black axes 0.35 mm; zero line #4D4D4D and onset line #8C8C8C dashed 0.4 mm.
@@ -27,7 +29,8 @@
 # (ci_lower/ci_upper), copied verbatim (they equal est +/- 1.96 SE in the
 # source). The 90% bounds are added as est +/- qnorm(0.95) * saved SE. Reference
 # rows keep their saved 0/0 (or NA) bounds. Marker fill rules (UP: filled iff
-# saved p < 0.05) do not depend on the 90% bounds.
+# saved p < 0.05) do not depend on the 90% bounds. The wage figure has no saved
+# SE; its 90% bars are scaled from its 95% bars by WAGE90_RATIO (section 4).
 #
 # Usage (from the repository root):  Rscript scripts/figures/02_render_figures.R
 suppressPackageStartupMessages({
@@ -50,7 +53,7 @@ Z90  <- qnorm(0.95)            # 1.644854; used only for the added 90% bounds
 LW95 <- 0.4; LW90 <- 1.3       # thin 95%, thick 90%
 PT_SIZE <- 2.0; PT_STROKE <- 0.4; PT_BORDER <- "#262626"
 ZERO_COL <- "#4D4D4D"; ONSET_COL <- "#8C8C8C"; REF_LW <- 0.4
-TITLE_PT <- 16; TITLE_WIDTH <- 65   # 16 pt title; ~65 chars fit the 11 in canvas
+TITLE_PT <- 32; TITLE_WIDTH <- 36   # 32 pt title; 36-char lines (2 lines each) fit the 11 in canvas
 
 pal_fill <- c(Public = "#0072B2", Charter = "#D55E00")   # reference slots 1, 2
 pal_bar  <- c(Public = "#72B1D4", Charter = "#E7A672")
@@ -90,7 +93,7 @@ BARS_NOTE <- "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
 # "Notes:" paragraph, wrapped at 150 characters as in the reference.
 notes_of <- function(text, width = 150, bars = BARS_NOTE)
   paste(strwrap(paste("Notes:", text, bars), width = width), collapse = "\n")
-# Titles wrapped on word boundaries so a long title never clips at 16 pt.
+# Titles wrapped on word boundaries so a long title never clips at 32 pt.
 wrap_title <- function(s, width = TITLE_WIDTH) paste(strwrap(s, width = width), collapse = "\n")
 
 # Saved 95% bounds verbatim; 90% bounds = est +/- qnorm(0.95) * saved SE.
@@ -114,9 +117,10 @@ ref_lines <- function(onset_x, zero_y = 0) list(
 
 # Single-series event study (reference slot 1: blue circle). `hollow` marks
 # points drawn with a white fill (only where the original encoded p >= 0.05).
-# Optional arguments serve the wage figure: `ci90 = FALSE` drops the 90% layer
-# (only the original 95% exists); `x_labels`/`x_limits`/`y_scale`/`zero_y` set
-# the source-coordinate axes. Defaults reproduce the numeric figures unchanged.
+# Optional arguments serve the wage figure: `x_labels`/`x_limits`/`y_scale`/
+# `zero_y` set the source-coordinate axes. `ci90 = FALSE` would drop the 90%
+# layer; all four figures use the default TRUE. Defaults reproduce the numeric
+# figures unchanged.
 plot_single <- function(df, x, onset_x, title, subtitle, xlab, ylab, caption,
                         hollow = rep(FALSE, nrow(df)), breaks = sort(unique(df[[x]])),
                         x_labels = waiver(), x_limits = range(df[[x]]) + c(-0.5, 0.5),
@@ -224,14 +228,37 @@ save_fig(p_bt, "reshuffling_by_type.png")
 #     contains the 1-4 px anti-aliasing/resampling fringe and is not used. At
 #     e = -1 (reference period) the original has no bar (null), so none is drawn;
 #     the marker footprint is not treated as an interval;
+#   * 90% bar = graphical re-expression of that 95% bar (WAGE90_RATIO below);
 #   * hollow = white interior measured in the original (e = -6..-1 and 1);
 #   * panel limits = original panel bounds (x 120..1546, y 126..931), expand 0,
 #     so every mark keeps its normalized position relative to the original axes;
 #   * ticks = measured tick centres with the labels printed on the original;
 #   * zero line = measured y tick centre for "0"; onset line = weighted centroid
 #     of the measured onset-line column profile.
-# The printed labels give the original units; no coefficient, SE or 90% bound
-# is computed from these coordinates.
+# The printed labels give the original units; no coefficient or SE is computed
+# from these coordinates.
+#
+# Construction of the original 95% bars (immutable historical producer, read
+# only): nested repo Vocational/5_Package, commit
+# 96eec106c1d82821daaff2f0b8d0512d99d190fa (11 August 2026), file
+# 1_Codes/3_Analysis/08_survey_outcomes.R. Lines 447-458: did::att_gt(...,
+# bstrap = TRUE, biters = 1999, cband = FALSE); did::aggte(type = "dynamic");
+# out$dyn = (event_time = dy$egt, att = dy$att.egt, se = dy$se.egt). Lines
+# 511-517: ci_lower = att - 1.96*se, ci_upper = att + 1.96*se, drawn by
+# geom_linerange(aes(ymin = ci_lower, ymax = ci_upper)). Lines 523-529: title,
+# subtitle, printed ATT/SE and filename match the original raster. So each 95%
+# bar is pointwise normal (Wald) with the bootstrap SE: half-length 1.96*se,
+# not a uniform band and not percentile quantiles.
+# Hence the pointwise normal 90% bar has half-length qnorm(0.95)*se =
+# WAGE90_RATIO * (95% half-length), with WAGE90_RATIO = qnorm(0.95)/1.96
+# (0.83921103). Because the y axis is linear in the coefficient, the same ratio
+# applies in image coordinates: lo90 = est + r*(lo95 - est), hi90 = est +
+# r*(hi95 - est), with est/lo95/hi95 the measured centre and 95% endpoints.
+# This is a graphical re-expression at the original raster resolution (endpoint
+# precision ~1 source px, about 0.2 EUR on the printed scale); no coefficient or
+# SE is recovered, and the 1.96 here is the producer's 95% multiplier, not a
+# recomputation of any 95% bound.
+WAGE90_RATIO <- Z90 / 1.96
 geo <- fromJSON(file.path(data_dir, "wage_geometry.json"), simplifyVector = FALSE)
 wm <- geo$markers
 null_na <- function(v) if (is.null(v)) c(NA_real_, NA_real_) else as.numeric(unlist(v))
@@ -242,6 +269,8 @@ wage <- data.frame(
   lo95       = vapply(wm, function(m) null_na(m$bar_core_rows_top_bottom)[1], 1),
   hi95       = vapply(wm, function(m) null_na(m$bar_core_rows_top_bottom)[2], 1),
   hollow     = vapply(wm, function(m) isTRUE(m$hollow), TRUE))
+wage$lo90 <- wage$est + WAGE90_RATIO * (wage$lo95 - wage$est)   # NA at e = -1 (no bar)
+wage$hi90 <- wage$est + WAGE90_RATIO * (wage$hi95 - wage$est)
 wpanel <- vapply(geo$panel_bounds_px[c("x0", "x1", "y0", "y1")], as.numeric, 1)
 wx <- vapply(geo$x_tick_centres_px, as.numeric, 1)    # names "-6".."6"
 wy <- vapply(geo$y_tick_centres_px, as.numeric, 1)    # names "120".."-40"
@@ -255,10 +284,10 @@ p_wage <- plot_single(
   breaks = unname(wx), x_labels = names(wx), x_limits = unname(wpanel[c("x0", "x1")]),
   y_scale = scale_y_reverse(breaks = unname(wy), labels = names(wy),
                             limits = unname(wpanel[c("y1", "y0")]), expand = c(0, 0)),
-  zero_y = wy[["0"]], ci90 = FALSE,
+  zero_y = wy[["0"]], ci90 = TRUE,
   title = "Callaway-Sant'Anna event study: Monthly Wage (EUR, midpoints)",
   subtitle = "Binary dual-offer adoption | not-yet-treated controls | clustered at school",
   xlab = "Event time (years relative to dual adoption)",
   ylab = "Effect on Monthly Wage (EUR, midpoints)",
-  caption = notes_of(wage_note, bars = "Bars show 95% confidence intervals."))
+  caption = notes_of(wage_note))
 save_fig(p_wage, "crime_monthly_earnings_large.png")

@@ -33,7 +33,9 @@ saved JSON exactly (after the same rounding):
     equal the re-measured arrays.
 
 All quantities are image coordinates (pixel indices, y downward) at raster
-resolution. No coefficient, standard error or 90% bound is derived from them.
+resolution. No coefficient or standard error is derived from them. The 90% bars
+of the website figure are not measured here: 02_render_figures.R derives them
+from centre_xy and bar_core_rows_top_bottom (see WAGE90_RATIO there).
 
 Usage (repo root):
   python3 -I -B scripts/figures/04_restyle_wage_raster.py

@@ -4,8 +4,9 @@ All four research figures on the site are drawn by `02_render_figures.R` with on
 ggplot template. Three of them come from **saved aggregate estimates**: event-study
 coefficients, their saved standard errors and saved 95% bounds. Nothing is
 re-estimated. The fourth (monthly wage) has no saved estimates; it is a **graphical
-reconstruction** from the image coordinates of the original raster and shows only
-its original 95% intervals (see *Monthly wage figure* below).
+reconstruction** from the image coordinates of the original raster: its original
+95% bars plus 90% bars re-expressed graphically from them (see *Monthly wage figure*
+below).
 
 ```
 python3 -I scripts/figures/01_extract_aggregates.py   # copy rows verbatim from Dropbox sources (needs Dropbox)
@@ -29,9 +30,10 @@ website figures are 3300 × 2250, without that footer. Rendering at the referenc
 physical size matters: at the previous 7.2 × 4.4 in canvas, text was about 1.53 times
 too large relative to the panel.
 
-* Serif (Times via ragg). Title 16 pt (raised from the reference's 12 pt for
-  legibility on the site), regular, centred, wrapped on word boundaries at 65
-  characters (all current titles fit on one line). Subtitle 10 pt, grey30. Axis
+* Serif (Times via ragg). Title 32 pt (raised from the reference's 12 pt for
+  legibility on the site), regular, centred, wrapped on word boundaries at 36
+  characters (each current title takes two lines; `03_verify.R` also measures the
+  widest rendered line against the canvas width). Subtitle 10 pt, grey30. Axis
   titles 11 pt. Tick and legend text 8.8 pt. Notes 8.5 pt, grey15, line height 1.15,
   left aligned, wrapped at 150 characters. Plot margins 8/12/8/24 pt (top/right/bottom/left).
 * White background, no grid, black axes (0.35). Zero line `#4D4D4D` and onset line
@@ -46,7 +48,8 @@ too large relative to the panel.
   In all three sources they equal estimate ± 1.96 × SE (largest discrepancy 7.1e-15), and
   they are not recomputed with `qnorm(0.975)`. The 90% bounds are the estimate ±
   `qnorm(0.95)` (1.644854) × the saved SE. Reference rows keep their saved NA (crime gap,
-  e = −1) or 0/0 (reshuffling, 2018) values.
+  e = −1) or 0/0 (reshuffling, 2018) values. The wage figure has no saved SE; its 90%
+  bars are derived from its 95% bars (see *Monthly wage figure*).
 * Marker fill follows the original figures: pooled UP markers are filled exactly where the
   saved p < 0.05 and hollow otherwise (including the 2018 reference year). Crime-gap and
   by-type markers are all filled. The 90% bounds play no role in the fill rule.
@@ -132,7 +135,7 @@ so they are **not** used.
 | Crime gap | C&S never-treated, 95% bars | identical values and saved 95% bounds (thin), added 90% bars (thick); blue circles; post-average and pre-trend statistics moved to Notes (panel tag "(a)" dropped) |
 | UP | ribbon 95% CI; filled = p < 0.05 | identical values and saved 95% bounds as thin bars, added 90% thick bars; filled blue circle = p < 0.05 (reference year hollow, as before); original note as Notes |
 | By type | 95% bars, all markers filled | identical values and saved 95% bounds, added 90% bars; Public #0072B2 circle, Charter #D55E00 triangle; untitled bottom legend; Notes keep printed averages and n |
-| Wage | 1600×1050 raster, 95% bars, hollow = not significant | same ggplot template; centres and 95% bar endpoints at the original image coordinates (graphical reconstruction, no numbers derived); 95% only; same hollow markers; original title and ATT 39.731*** (SE 13.047) |
+| Wage | 1600×1050 raster, 95% bars, hollow = not significant | same ggplot template; centres and 95% bar endpoints at the original image coordinates (graphical reconstruction, no numbers derived); added 90% thick bars = 95% bars scaled by qnorm(0.95)/1.96 about the centre; same hollow markers; original title and ATT 39.731*** (SE 13.047) |
 
 ## Monthly wage figure (`img/crime_monthly_earnings_large.png`)
 
@@ -140,8 +143,9 @@ The wage event-study estimates were never saved: `08_survey_outcomes.R` passes
 `cs$dyn` to the plot without writing it to disk. The figure is therefore a
 **graphical reconstruction** of the original image, drawn as new ggplot layers by
 the same `plot_single()` helper as the crime-gap and UP figures (circle 21, size 2.0,
-stroke 0.4, fill `#0072B2` / white, border `#262626`; thin 95% bars 0.4 `#72B1D4`;
-no 90% layer; same theme, canvas and Notes style). The old raster is not overlaid.
+stroke 0.4, fill `#0072B2` / white, border `#262626`; thin 95% bars 0.4 and thick
+90% bars 1.3, both `#72B1D4`; same theme, canvas and Notes style). The old raster is
+not overlaid.
 
 Source: `data/original_wage.png`, SHA-256
 `9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de`, byte-identical to
@@ -173,14 +177,56 @@ How the panel is drawn (`02_render_figures.R`, section 4):
   (`null`), so none is drawn; its marker footprint is not treated as an interval.
 * Zero line at the measured `y_tick_centres_px["0"]`; onset line at the weighted
   centroid of the measured `onset_line_cols_profile` (x ≈ 789.46).
+* 90% bars (thick) are derived, not measured. See the next subsection.
+
+### Wage 90% bars: construction of the original 95% bars
+
+The construction of the original 95% bars is documented in the immutable historical
+producer, read only: nested repo `Vocational/5_Package`, commit
+`96eec106c1d82821daaff2f0b8d0512d99d190fa` (11 August 2026), file
+`1_Codes/3_Analysis/08_survey_outcomes.R`.
+
+* Lines 447–458: `did::att_gt(..., bstrap = TRUE, biters = 1999, cband = FALSE)`, then
+  `did::aggte(type = "dynamic")`, stored as `out$dyn` with `att = dy$att.egt` and
+  `se = dy$se.egt` (pointwise multiplier-bootstrap SEs).
+* Lines 511–517: `ci_lower = att - 1.96*se`, `ci_upper = att + 1.96*se`, drawn by
+  `geom_linerange(aes(ymin = ci_lower, ymax = ci_upper))`.
+* Lines 523–529: the title, subtitle, printed ATT/SE and output filename match the
+  original raster.
+
+Each original 95% bar is therefore a pointwise normal (Wald) interval with half-length
+1.96 × se. It is not a uniform band (`cband = FALSE`) and not a percentile interval. The
+pointwise normal 90% interval has half-length `qnorm(0.95)` × se, i.e. r × the 95%
+half-length, with
+
+    r = qnorm(0.95) / 1.96 = 0.83921103.
+
+The y axis is linear in the coefficient, so the same ratio holds in image coordinates.
+`02_render_figures.R` computes, in the existing coordinate data frame,
+
+    lo90 = est + r × (lo95 − est),   hi90 = est + r × (hi95 − est),
+
+where `est` is the measured centre and `lo95`/`hi95` are the measured 95% endpoints. The
+centres, the 95% endpoints, the ticks and the reference lines are unchanged. e = −1 has
+no 95% bar and so no 90% bar. The `1.96` in `WAGE90_RATIO <- Z90 / 1.96` is the
+producer's 95% multiplier; no 95% bound is recomputed.
+
+Limitation: this is a graphical re-expression at the original raster resolution. The 95%
+endpoints are known to about 1 source pixel (≈ 0.2 EUR on the printed scale; 40 EUR ≈
+191 px), so the 90% endpoints carry the same precision. No event-time coefficient or SE
+is recovered, and none is written to disk. The Notes keep only the original printed
+statistics.
 
 Fidelity is geometric at the original raster resolution, not numerical estimator
 exactness. Text keeps the original title, subtitle and axis labels; the Notes keep
 "Overall ATT: 39.731*** (SE 13.047)", state that e = −1 is the normalized base period
-and that deeper pre-periods come from later adopters, and that bars show 95%
-confidence intervals. `03_verify.R` checks that each drawn centre and bar endpoint
-equals the saved coordinate for its event time exactly, the ticks, labels, limits,
-reference lines, hollow markers, the absence of a 90% layer, and the source hash.
+and that deeper pre-periods come from later adopters, and end with the same sentence as
+the other figures, "Bars indicate 90% (thick) and 95% (thin) confidence intervals."
+`03_verify.R` checks that each drawn centre and 95% bar endpoint equals the saved
+coordinate for its event time exactly; that each 90% endpoint equals centre +
+`qnorm(0.95)`/1.96 × (95% endpoint − centre) (written independently as a weighted
+average); that there are exactly two interval layers and none at e = −1; and the ticks,
+labels, limits, reference lines, hollow markers and source hash.
 
 Background: the original shows the C&S event study for `wage_cont` (binary dual-offer
 adoption, not-yet-treated controls, school cluster, e = −6..6, overall ATT 39.731,
