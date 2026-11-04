@@ -93,13 +93,49 @@ exact copy of the PDF point sizes:
 
 The public Notes are plain-language explanations for readers who have not read the
 papers (user request, 2026-11-04). Each figure has exactly three explicit lines at
-12 pt: two figure-specific lines (the first starts with "Notes:") and a common third
-line, "Bars show uncertainty: longer bars mean less precise estimates. Thick and thin
-bars mark the 90% and 95% confidence intervals." They state what the dots measure, the
-timing/reference period and the units. They carry no technical statistics (ATT, SE,
-p-values, school counts) and no estimator names; those are archived below. How the
-bounds are computed (saved 95% bounds verbatim; 90% = estimate ± `qnorm(0.95)` × saved
-SE) is documented here and in the source comments. No variable or cache names appear.
+12 pt: two figure-specific lines (the first starts with "Notes:") and a third line that
+states the aggregate treatment effect in plain language with significance stars,
+followed by the legend "\* p<0.10, \*\* p<0.05, \*\*\* p<0.01." (user request,
+2026-11-04; it replaces the former common line on the bars). Lines 1–2 state what the
+dots measure, the timing/reference period and the units. Apart from the line-3 effect
+and its stars, the Notes carry no technical statistics (ATT, SE, p-values, school
+counts) and no estimator names; those are archived below. How the bounds are computed
+(saved 95% bounds verbatim; 90% = estimate ± `qnorm(0.95)` × saved SE) is documented
+here and in the source comments; the charts no longer describe the bars in words. No
+variable or cache names appear.
+
+### Third Notes line: treatment effects and stars
+
+`notes_of(line1, line2, line3)` takes an explicit third line (no default). The numbers
+and stars are formatted in `02_render_figures.R` from saved aggregates; stars follow
+\* p < 0.10, \*\* p < 0.05, \*\*\* p < 0.01 (strict) applied to the saved p.
+
+| Figure | Line 3 (exact) | Source of number and stars |
+|---|---|---|
+| Wage | Male graduates earn €39.7\*\*\* more per month on average after the first offer. | Overall ATT **39.731\*\*\*** (SE 13.047) as **printed** on the archived `data/original_wage.png` (sha256 `9bac3c2192b6`). No exact p was archived and none is computed; the stars are the printed ones. The producer (`5_Package` @ `96eec10`, `08_survey_outcomes.R`) used `did::aggte(type = "simple")`, p = 2·pnorm(−\|att/se\|) and normal cutoffs; the normal approximation from the printed ATT/SE (≈ 0.0023) only confirms \*\*\*. Nothing is recovered from pixels. |
+| Crime gap | The youth–adult crime-rate gap falls by 17.1\*\* crimes per 1,000 on average after adoption. | `data/crime_gap_aggregate.json` (unchanged; hash in `provenance.json`): post-adoption average ATT −17.061, SE 6.697, p 0.011. The source table prints p to 3 decimals and the estimate as −17.061\*\*; any unrounded p in [0.0105, 0.0115) gives \*\*. |
+| Pooled UP | Pooled post-policy estimate (2019–2024): +0.43\*\* pupils per pupil needed to meet the quota. | Static DiD row, est 0.429636, SE 0.180803, p 0.0181 (n_obs 3609, 311 schools). |
+| By type | Pooled 2019–2024 gains: +1.16\*\*\* pupils in public schools; +0.41\* in charter schools. | Static DiD rows: Public est 1.158905, SE 0.162757, p 3.6e−11 (158 schools); Charter est 0.411901, SE 0.231202, p 0.0768 (153 schools). |
+
+Enrollment sources (read-only, same 2026-07-07 snapshot folder as the dynamic points,
+`.../06_JP_continuous_did/published_quotas/`): `01_static_did_number.csv` (sha256
+`c0855ad40ac6`) and `03_static_did_UP_by_school_type.csv` (sha256 `80891ff0d8a9`),
+filters `arm = published`, `stage = inf1`, `kind = number`, `outcome = n_nese_b`,
+`treatment = did_nb`, `sign_group = UP` (plus `school_type` Public/Charter). The
+by-type file's `Both` row equals the pooled row. The selected rows are copied verbatim
+(as text), with paths, hashes, filters, unit, period and model, into the derived
+`data/caption_effects.json`; `provenance.json` and the plotting CSVs are unchanged.
+Model (producer `Pla de Xoc/Data/Temp/fixes_04_06_20260922/before/code/06_JP_continuous_did.R`,
+`fit_static` and `fit_static_cstat_up`): outcome on `treat_nb` × post, school and year
+fixed effects, weights `n_students`, SE clustered by school; sample 2013–2024, post =
+2019–2024. Unit: enrolled vulnerable pupils per pupil needed to reach the quota.
+
+**Static vs dynamic aggregation.** The enrollment numbers on line 3 are these existing
+pooled static DiD estimates, with their own saved SE and p. They are *not* the
+arithmetic means of the dynamic event-study points drawn on the charts (the archived
+post-period means +1.259 public / +0.399 charter, below). Those means have no saved
+p-value, and no stars are attached to them; no stars are derived from combining
+pointwise SEs. The dynamic points themselves are unchanged.
 
 Plain-language readings (confirmed against the producers, no re-estimation):
 
@@ -115,8 +151,14 @@ Plain-language readings (confirmed against the producers, no re-estimation):
   below quota", an accepted plain-language approximation.
 
 `03_verify.R` checks the exact text of all three lines, that each figure has exactly
-three lines with "Notes:" only on line 1, that each rendered line fits, and that no
-technical statistic appears.
+three lines with "Notes:" only on line 1, that each rendered line fits (line 3 widths:
+wage 7.50, crime 8.36, pooled 8.51, by type 8.09 in < 10.35 in), and that no other
+technical statistic appears. Section 7 checks `caption_effects.json` (recorded hashes
+and filters; when Dropbox is reachable, source hashes and verbatim unique rows, the
+`Both` = pooled identity and the crime table's printed −17.061\*\*), that the printed
+numbers and stars follow from the saved estimates and unrounded p with an
+independently written star rule (including the strict 0.01/0.05/0.10 boundaries), the
+wage printed stars (no exact p), and that no stars sit on the dynamic means.
 
 ### Axis titles
 
@@ -138,7 +180,8 @@ them and `03_verify.R` (section 6 and the wage checks) keeps testing that.
   schools; filled markers = p < 0.05). Outcome: number of vulnerable (NESE-B) students in
   preschool (Infantil). The fill rule is still drawn and checked.
 * By type: same estimator and outcome; printed averages Public +0.057 / +1.259
-  (n = 158), Charter −0.029 / +0.399 (n = 153). The original note was clipped at the
+  (n = 158), Charter −0.029 / +0.399 (n = 153). These are arithmetic means of the
+  dynamic points (pre 2013–2018 / post 2019–2024), not the pooled static DiD on line 3. The original note was clipped at the
   right edge of the image; its full text (quota year 2019, ref = 2018) is confirmed by
   the source.
 * Wage: Callaway and Sant'Anna for binary dual-offer adoption, not-yet-treated controls,

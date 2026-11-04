@@ -1,0 +1,108 @@
+{
+  "note": "Derived caption inputs for the third Notes line. Enrollment rows are copied verbatim (as text) from the saved static DiD tables; nothing is re-estimated. Stars: * p<0.10, ** p<0.05, *** p<0.01 from the saved p. These are pooled static DiD estimates, NOT arithmetic means of the dynamic event-study coefficients.",
+  "stars_convention": {
+    "***": "p < 0.01",
+    "**": "p < 0.05",
+    "*": "p < 0.10"
+  },
+  "enrollment_pooled": {
+    "source": {
+      "path": "<Dropbox>/Pla de Xoc/Data/Temp/idescat_onsite/mirror_staging/Package/Out/Tables/06_JP_continuous_did/published_quotas/01_static_did_number.csv",
+      "sha256": "c0855ad40ac64b798d28864c90ecfda829a23201abf533bf02c6e2cba6bd3bac",
+      "bytes": 1047
+    },
+    "filters": {
+      "arm": "published",
+      "stage": "inf1",
+      "kind": "number",
+      "outcome": "n_nese_b",
+      "treatment": "did_nb",
+      "sign_group": "UP"
+    },
+    "unit": "enrolled vulnerable (NESE-B, Infantil) pupils per pupil needed to reach the quota (unit of treat_nb)",
+    "period": "post 2019-2024 vs pre 2013-2018",
+    "model": "Existing pooled static continuous DiD (fit_static / fit_static_cstat_up in <Dropbox>/Pla de Xoc/Data/Temp/fixes_04_06_20260922/before/code/06_JP_continuous_did.R): outcome on treat_nb x post, school and year fixed effects, weights n_students, SE clustered by school; sample 2013-2024, post = 2019-2024 (quota year 2019). Not re-estimated.",
+    "row": {
+      "arm": "published",
+      "stage": "inf1",
+      "title": "Infantil",
+      "outcome": "n_nese_b",
+      "treatment": "did_nb",
+      "sign_group": "UP",
+      "est": "0.429636253553721",
+      "se": "0.18080342177767",
+      "pval": "0.0180962748658395",
+      "n_obs": "3609",
+      "n_schools": "311",
+      "pre_mean": "0.589946274735728",
+      "kind": "number"
+    }
+  },
+  "enrollment_by_type": {
+    "source": {
+      "path": "<Dropbox>/Pla de Xoc/Data/Temp/idescat_onsite/mirror_staging/Package/Out/Tables/06_JP_continuous_did/published_quotas/03_static_did_UP_by_school_type.csv",
+      "sha256": "80891ff0d8a984b33ecea2271457c8d047c6fc2c7d532303ff09f66a90c9165d",
+      "bytes": 7675
+    },
+    "filters": {
+      "arm": "published",
+      "stage": "inf1",
+      "kind": "number",
+      "outcome": "n_nese_b",
+      "treatment": "did_nb",
+      "sign_group": "UP",
+      "school_type": ["Public", "Charter"]
+    },
+    "unit": "enrolled vulnerable (NESE-B, Infantil) pupils per pupil needed to reach the quota (unit of treat_nb)",
+    "period": "post 2019-2024 vs pre 2013-2018",
+    "model": "Existing pooled static continuous DiD (fit_static / fit_static_cstat_up in <Dropbox>/Pla de Xoc/Data/Temp/fixes_04_06_20260922/before/code/06_JP_continuous_did.R): outcome on treat_nb x post, school and year fixed effects, weights n_students, SE clustered by school; sample 2013-2024, post = 2019-2024 (quota year 2019). Not re-estimated.",
+    "rows": {
+      "Public": {
+        "arm": "published",
+        "stage": "inf1",
+        "title": "Infantil",
+        "outcome": "n_nese_b",
+        "treatment": "did_nb",
+        "sign_group": "UP",
+        "school_type": "Public",
+        "est": "1.15890515075212",
+        "se": "0.162756727225787",
+        "pval": "3.63572255697934e-11",
+        "n_obs": "1820",
+        "n_schools": "158",
+        "pre_mean": "0.897995829471733",
+        "kind": "number"
+      },
+      "Charter": {
+        "arm": "published",
+        "stage": "inf1",
+        "title": "Infantil",
+        "outcome": "n_nese_b",
+        "treatment": "did_nb",
+        "sign_group": "UP",
+        "school_type": "Charter",
+        "est": "0.411901490733232",
+        "se": "0.231202145227286",
+        "pval": "0.0768171350079637",
+        "n_obs": "1789",
+        "n_schools": "153",
+        "pre_mean": "0.32477375283588",
+        "kind": "number"
+      }
+    }
+  },
+  "crime": {
+    "source": "data/crime_gap_aggregate.json (see provenance.json: crime_gap_agg, anticipation_ddd.tex column 'Anticipation = 0')",
+    "quantity": "post_avg_att: Callaway-Sant'Anna post-adoption average ATT, crimes per 1,000",
+    "p_note": "Saved p is printed to 3 decimals (0.011) in the source table, which also prints -17.061**; any p in [0.0105, 0.0115) gives **."
+  },
+  "wage": {
+    "source": "data/original_wage.png (sha256 9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de)",
+    "printed_att": "39.731",
+    "printed_stars": "***",
+    "printed_se": "13.047",
+    "p": null,
+    "p_note": "No exact p was archived. Stars are those printed on the original raster by the historical producer (Vocational/5_Package @ 96eec106c1d82821daaff2f0b8d0512d99d190fa, 1_Codes/3_Analysis/08_survey_outcomes.R: did::aggte(type = 'simple'), p = 2*pnorm(-abs(att/se)), normal cutoffs). Not recovered from pixels.",
+    "unit": "EUR per month, male graduates, after the first offer"
+  }
+}

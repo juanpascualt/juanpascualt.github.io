@@ -22,9 +22,10 @@
 #      canvas width in at most 2 lines, colours, margins, point
 #      shape/size/stroke, line widths, palette, and the exact title / axis /
 #      legend text. Explanatory Notes: exactly 3 explicit lines per figure
-#      (exact text; "Notes:" prefix on line 1; common line 3), each rendered
-#      line measured at 12 pt to fit the width; no technical statistics
-#      (ATT, SE, p-values, school counts, estimator names) on the charts.
+#      (exact text; "Notes:" prefix on line 1; line 3 = treatment-effect
+#      reading with stars and the stars legend), each rendered line measured at
+#      12 pt to fit the width; no other technical statistics (ATT, SE,
+#      p-values, school counts, estimator names) on the charts.
 #   5. All four PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
 #      original website image at the fixed baseline commit BASELINE (not the
 #      moving HEAD), and the copies under static/img and public/img are
@@ -33,6 +34,10 @@
 #      in css/, static/css/ and public/css/style.css.
 #   6. Archived statistics (printed on the original figures, documented in the
 #      README, no longer on the charts) are reproduced from the saved data.
+#   7. Third-line effects: data/caption_effects.json rows equal the static DiD
+#      source rows verbatim and the sources keep their SHA-256 (when reachable);
+#      printed numbers/stars follow from the saved estimates and unrounded p
+#      (independent star rule, boundary cases); wage stars are the printed ones.
 # Usage (repo root):  Rscript scripts/figures/03_verify.R
 suppressPackageStartupMessages({ library(ggplot2); library(jsonlite); library(digest) })
 
@@ -271,7 +276,7 @@ check(identical(sort(names(wage)), sort(c("event_time", "px_x", "est", "lo95", "
       "wage: plotted data are image coordinates only (centre, 95% and derived 90% endpoints; no coefficient/SE columns)")
 wcap <- notes_text(p_wage)
 check(!grepl("ATT|SE|39\\.73|13\\.047|14\\.329|18\\.721", wcap),
-      "wage: explanatory Notes print no ATT/SE (archived original 39.731*** (SE 13.047) documented in README); no substituted SE/ATT")
+      "wage: explanatory Notes print no 'ATT'/SE and no unrounded 39.731 (line 3 shows the printed ATT rounded, 39.7***); no substituted SE/ATT")
 
 # ---- 4. reference template and wording ----------------------------------------
 el <- function(p, k) calc_element(k, p$theme)
@@ -324,40 +329,46 @@ check(identical(sv("fill"), c("#0072B2", "#D55E00")) && identical(sv("colour"), 
 lab_is <- function(p, want) all(vapply(names(want), function(k)
   identical(if (k == "title") unwrap(p$labels[[k]]) else p$labels[[k]], want[[k]]), TRUE))
 # Explanatory Notes: exactly three explicit lines (line 1 starts "Notes: ";
-# line 3 is common to all four figures).
-bars_line <- paste("Bars show uncertainty: longer bars mean less precise estimates.",
-                   "Thick and thin bars mark the 90% and 95% confidence intervals.")
+# line 3 = authored treatment-effect reading, exact text; numbers checked in 7).
+legend_stars <- "* p<0.10, ** p<0.05, *** p<0.01."
+line3 <- list(
+  wage = paste("Male graduates earn €39.7*** more per month on average after the first offer.", legend_stars),
+  gap  = paste("The youth–adult crime-rate gap falls by 17.1** crimes per 1,000 on average after adoption.", legend_stars),
+  up   = paste("Pooled post-policy estimate (2019–2024): +0.43** pupils per pupil needed to meet the quota.", legend_stars),
+  bt   = paste("Pooled 2019–2024 gains: +1.16*** pupils in public schools; +0.41* in charter schools.", legend_stars))
 up_line2 <- paste("Values are per extra pupil needed to meet a school's quota, relative to 2018.",
                   "Only schools initially below quota are shown.")
-notes_are <- function(p, l1, l2) identical(p$labels$caption, paste(paste("Notes:", l1), l2, bars_line, sep = "\n"))
+notes_are <- function(p, l1, l2, l3) identical(p$labels$caption, paste(paste("Notes:", l1), l2, l3, sep = "\n"))
 no_sub <- function(p) is.null(p$labels$subtitle)
 check(no_sub(p_gap) && lab_is(p_gap, list(
   title = "Youth–Adult Crime Gap",
   y = "Effect on Crime-Rate Gap (per 1,000)", x = "Years relative to dual-VET adoption")) &&
   notes_are(p_gap,
     "Dots show the estimated effect of company-based vocational training on the crime-rate gap between young people (16–25) and adults (36–45).",
-    "Year 0 marks local adoption. Values below zero indicate a smaller gap than in year -1, in crimes per 1,000 residents."),
+    "Year 0 marks local adoption. Values below zero indicate a smaller gap than in year -1, in crimes per 1,000 residents.",
+    line3$gap),
   "crime gap: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (ages 16-25 vs 36-45, year 0 adoption, ref year -1, per 1,000)")
 check(no_sub(p_up) && lab_is(p_up, list(
   title = "Vulnerable Student Enrollment",
   y = "Effect on Vulnerable Enrollment (Students)", x = "Year")) &&
   notes_are(p_up,
     "Barcelona reserves preschool seats to reduce school segregation. Dots show the estimated change in vulnerable children's enrollment.",
-    up_line2),
+    up_line2, line3$up),
   "UP: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (reserved seats, per extra pupil to quota, ref 2018, initially below quota)")
 check(no_sub(p_bt) && lab_is(p_bt, list(
   title = "Vulnerable Student Enrollment by School Type",
   y = "Effect on Vulnerable Enrollment (Students)", x = "Year")) &&
   notes_are(p_bt,
     "Dots show how Barcelona's seat quotas affect vulnerable children's enrollment in public and publicly funded private (charter) preschools.",
-    up_line2),
+    up_line2, line3$bt),
   "by type: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (public vs charter, per extra pupil to quota, ref 2018)")
 check(no_sub(p_wage) && lab_is(p_wage, list(
   title = "Monthly Earnings",
   y = "Effect on Monthly Earnings (EUR)", x = "Event time (years relative to dual adoption)")) &&
   notes_are(p_wage,
     "Dots show the estimated effect of offering company-based vocational training in a school program on male graduates' monthly earnings, in euros.",
-    "Year 0 marks the first offer. Values are relative to the year before that offer; positive values indicate higher earnings."),
+    "Year 0 marks the first offer. Values are relative to the year before that offer; positive values indicate higher earnings.",
+    line3$wage),
   "wage: outcome title, no subtitle, axis labels; exact 3-line explanatory Notes (male graduates, first program offer, ref year before offer, euros)")
 four <- list(p_gap, p_up, p_bt, p_wage)
 title_lines <- lapply(four, function(p) strsplit(p$labels$title, "\n")[[1]])
@@ -385,13 +396,16 @@ cat(sprintf("  Notes line %d.%d: %.3f in\n", rep(seq_along(four), lengths(note_s
             sequence(lengths(note_split)), note_w), sep = "")
 check(NOTES_PT == 12 && all(lengths(note_split) == 3L) &&
         all(vapply(note_split, function(l) startsWith(l[1], "Notes: ") && !any(grepl("Notes:", l[-1])) &&
-                     identical(l[3], bars_line), TRUE)),
-      "Notes: 12 pt, exactly 3 explicit lines per figure; 'Notes:' prefix on line 1 only; common line 3")
+                     endsWith(l[3], paste0(". ", legend_stars)) && !any(grepl("p<", l[1:2], fixed = TRUE)), TRUE)) &&
+        identical(vapply(note_split, `[`, "", 3), unname(unlist(line3[c("gap", "up", "bt", "wage")]))) &&
+        !any(grepl("Bars show uncertainty", note_lines, fixed = TRUE)),
+      "Notes: 12 pt, exactly 3 explicit lines per figure; 'Notes:' prefix on line 1 only; line 3 = effect + stars legend (no bars line)")
 check(all(note_w < avail_in) && all(note_w <= TEXT_W_IN),
       sprintf("Notes: every rendered 12 pt line fits (widest %.2f in <= %.2f in renderer width < %.2f in available; no right clipping, no 4th line)",
               max(note_w), TEXT_W_IN, avail_in))
-check(!any(grepl("ATT|\\bSE\\b|p [=<]|n ?= ?[0-9]|Callaway|Sant'Anna|NESE|pre-avg|post-avg|\\*\\*\\*", note_lines)),
-      "Notes: no technical statistics (ATT, SE, p-values, school counts, estimator names) on the charts")
+note_body <- sub(paste0(" ", legend_stars), "", note_lines, fixed = TRUE)   # drop the stars legend only
+check(!any(grepl("ATT|\\bSE\\b|p ?[=<]|n ?= ?[0-9]|Callaway|Sant'Anna|NESE|pre-avg|post-avg|1\\.259|0\\.399|1\\.26|0\\.40\\b", note_body)),
+      "Notes: no technical statistics (ATT, SE, p-values, school counts, estimator names) and no dynamic-mean numbers (1.259/0.399) on the charts")
 all_text <- unlist(lapply(four, function(p) unlist(p$labels)))
 check(!any(grepl("FUENTE|NOTAS|pixel|px|source_|centre_xy|bar_core", all_text)),
       "no technical FUENTE/NOTAS footer text or implementation/source-pixel terms on the charts")
@@ -461,6 +475,68 @@ check(identical(as.integer(n_by[c("Public", "Charter")]), c(158L, 153L)) && up$n
 check(identical(c(sprintf("%.1f", as.numeric(agg$post_avg_att)), agg$post_avg_p,
                   sprintf("%.2f", as.numeric(agg$pretest_wald_p))), c("-17.1", "0.011", "0.84")),
       "crime gap: archived post average / p / pre-test round to original subtitle (-17.1, 0.011, 0.84)")
+
+# ---- 7. third-line effects: caption_effects.json, sources, numbers, stars ------
+ce <- fromJSON(file.path(data_dir, "caption_effects.json"), simplifyVector = FALSE)
+ce_rows <- list(pooled = ce$enrollment_pooled$row, Public = ce$enrollment_by_type$rows$Public,
+                Charter = ce$enrollment_by_type$rows$Charter)
+ce_src <- list(pooled = ce$enrollment_pooled$source, bytype = ce$enrollment_by_type$source)
+CE_SHA <- c(pooled = "c0855ad40ac64b798d28864c90ecfda829a23201abf533bf02c6e2cba6bd3bac",
+            bytype = "80891ff0d8a984b33ecea2271457c8d047c6fc2c7d532303ff09f66a90c9165d")
+filt <- list(arm = "published", stage = "inf1", kind = "number", outcome = "n_nese_b",
+             treatment = "did_nb", sign_group = "UP")
+check(identical(vapply(ce_src, `[[`, "", "sha256"), CE_SHA) &&
+        all(vapply(ce_rows, function(r) all(vapply(names(filt), function(k) identical(r[[k]], filt[[k]]), TRUE)), TRUE)) &&
+        identical(c(ce_rows$Public$school_type, ce_rows$Charter$school_type), c("Public", "Charter")) &&
+        all(vapply(ce_rows, function(r) all(vapply(r, is.character, TRUE)), TRUE)),
+      "caption_effects.json: recorded source SHA-256 c0855ad40ac6 / 80891ff0d8a9; rows carry the selection filters; values stored as text")
+ce_path <- function(k) file.path(dropbox, sub("^<Dropbox>/", "", ce_src[[k]]$path))
+if (all(file.exists(vapply(names(ce_src), ce_path, "")))) {
+  rdc <- function(p) read.csv(p, colClasses = "character", na.strings = character(0))
+  sel <- function(s, type = NULL) {
+    k <- Reduce(`&`, Map(function(col, v) s[[col]] == v, names(filt), filt))
+    if (!is.null(type)) k <- k & s$school_type == type
+    s[k, , drop = FALSE]
+  }
+  s1 <- rdc(ce_path("pooled")); s3 <- rdc(ce_path("bytype"))
+  same <- function(df, r) nrow(df) == 1L && identical(names(df), names(r)) && identical(unname(unlist(df[1, ])), unname(unlist(r)))
+  check(identical(unname(vapply(names(ce_src), function(k) digest(file = ce_path(k), algo = "sha256"), "")), unname(CE_SHA)),
+        "static DiD sources unchanged (01_static_did_number.csv, 03_static_did_UP_by_school_type.csv sha256)")
+  check(same(sel(s1), ce_rows$pooled) && same(sel(s3, "Public"), ce_rows$Public) && same(sel(s3, "Charter"), ce_rows$Charter),
+        "caption_effects.json rows identical (as text, unique match) to source rows: pooled UP; UP Public; UP Charter")
+  b <- sel(s3, "Both"); cols <- c("est", "se", "pval", "n_obs", "n_schools", "pre_mean")
+  check(nrow(b) == 1L && identical(unlist(b[1, cols]), unlist(sel(s1)[1, cols])),
+        "by-type source 'Both' row equals the pooled 01 UP row (same model and sample)")
+  tex <- paste(readLines(src_path("crime_gap_agg"), warn = FALSE), collapse = "\n")
+  check(grepl("ATT (post average) & -17.061** (6.697)", tex, fixed = TRUE),
+        "crime source table prints the post average as -17.061** (6.697)")
+} else cat("SKIP caption source re-check: Dropbox static DiD sources not reachable\n")
+# Independent star rule (left-closed intervals: p = 0.01 is **, not ***).
+star_ref <- function(p) c("***", "**", "*", "")[findInterval(p, c(0.01, 0.05, 0.10)) + 1L]
+bnd <- c(0.0099999, 0.01, 0.0499999, 0.05, 0.0999999, 0.10, 0.5)
+check(identical(vapply(bnd, stars_of, ""), star_ref(bnd)) &&
+        identical(star_ref(bnd), c("***", "**", "**", "*", "*", "", "")),
+      "stars: renderer rule = independent rule at thresholds (p < .01 ***, < .05 **, < .10 *; boundaries strict)")
+pv <- vapply(ce_rows, function(r) as.numeric(r$pval), 1); es <- vapply(ce_rows, function(r) as.numeric(r$est), 1)
+check(identical(star_ref(pv), c("**", "***", "*")) &&
+        identical(sprintf("%+.2f%s", es, star_ref(pv)), c("+0.43**", "+1.16***", "+0.41*")) &&
+        grepl("+0.43**", line3$up, fixed = TRUE) && grepl("+1.16*** pupils in public", line3$bt, fixed = TRUE) &&
+        grepl("+0.41* in charter", line3$bt, fixed = TRUE),
+      sprintf("enrollment: printed +0.43** / +1.16*** / +0.41* follow from saved est and unrounded p (%.4g, %.3g, %.4g)",
+              pv[1], pv[2], pv[3]))
+gp <- as.numeric(agg$post_avg_p)
+check(identical(agg$post_avg_p, "0.011") && star_ref(0.0105) == "**" && star_ref(0.0115 - 1e-12) == "**" &&
+        identical(sprintf("%.1f%s", -as.numeric(agg$post_avg_att), star_ref(gp)), "17.1**") &&
+        grepl("falls by 17.1**", line3$gap, fixed = TRUE),
+      "crime: 17.1** from saved post average -17.061 and p 0.011 (any unrounded p in [0.0105, 0.0115) is **)")
+check(identical(ce$wage$printed_att, "39.731") && identical(ce$wage$printed_stars, "***") &&
+        identical(ce$wage$printed_se, "13.047") && is.null(ce$wage$p) &&
+        grepl(WAGE_SRC_SHA, ce$wage$source, fixed = TRUE) && grepl("€39.7***", line3$wage, fixed = TRUE),
+      "wage: €39.7*** = original printed ATT 39.731 with its printed stars (no exact p archived; none computed)")
+check(2 * pnorm(-39.731 / 13.047) < 0.01,
+      "wage: normal approximation from printed ATT/SE (~0.0023) is consistent with *** (consistency only, not the source of the stars)")
+check(!any(vapply(unlist(line3), function(l) grepl("1\\.259|0\\.399|1\\.26\\b|0\\.40\\b", l), TRUE)),
+      "no stars on the dynamic-point means (1.259 / 0.399); enrollment line 3 uses pooled static DiD rows")
 
 cat(sprintf("\n%d failure(s)\n", fails))
 quit(status = if (fails) 1L else 0L)
