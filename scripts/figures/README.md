@@ -3,7 +3,7 @@
 All four research figures on the site are drawn by `02_render_figures.R` with one
 ggplot template. Three of them come from **saved aggregate estimates**: event-study
 coefficients, their saved standard errors and saved 95% bounds. Nothing is
-re-estimated. The fourth (monthly wage) has no saved estimates; it is a **graphical
+re-estimated. The fourth (monthly wage) has no saved dynamic coefficients; it is a **graphical
 reconstruction** from the image coordinates of the original raster: its original
 95% bars plus 90% bars re-expressed graphically from them (see *Monthly wage figure*
 below).
@@ -44,7 +44,7 @@ too large relative to the panel.
   In all three sources they equal estimate ± 1.96 × SE (largest discrepancy 7.1e-15), and
   they are not recomputed with `qnorm(0.975)`. The 90% bounds are the estimate ±
   `qnorm(0.95)` (1.644854) × the saved SE. Reference rows keep their saved NA (crime gap,
-  e = −1) or 0/0 (reshuffling, 2018) values. The wage figure has no saved SE; its 90%
+  e = −1) or 0/0 (reshuffling, 2018) values. The wage figure has no saved dynamic SE; its 90%
   bars are derived from its 95% bars (see *Monthly wage figure*).
 * Marker fill follows the original figures: pooled UP markers are filled exactly where the
   saved p < 0.05 and hollow otherwise (including the 2018 reference year). Crime-gap and
@@ -94,11 +94,12 @@ exact copy of the PDF point sizes:
 The public Notes are plain-language explanations for readers who have not read the
 papers (user request, 2026-11-04). Each figure has exactly three explicit lines at
 12 pt: two figure-specific lines (the first starts with "Notes:") and a third line that
-states the aggregate treatment effect in plain language with significance stars,
-followed by the legend "\* p<0.10, \*\* p<0.05, \*\*\* p<0.01." (user request,
-2026-11-04; it replaces the former common line on the bars). Lines 1–2 state what the
-dots measure, the timing/reference period and the units. Apart from the line-3 effect
-and its stars, the Notes carry no technical statistics (ATT, SE, p-values, school
+states the aggregate treatment effect in plain language with significance stars and a
+percent magnitude (user request, 2026-11-04). The former p-threshold legend
+("\* p<0.10, …") on line 3 is retired and no longer printed on any chart; the star
+convention is documented here only. Lines 1–2 state what the
+dots measure, the timing/reference period and the units. Apart from the line-3 effect,
+its stars and its percent magnitude, the Notes carry no technical statistics (ATT, SE, p-values, school
 counts) and no estimator names; those are archived below. How the bounds are computed
 (saved 95% bounds verbatim; 90% = estimate ± `qnorm(0.95)` × saved SE) is documented
 here and in the source comments; the charts no longer describe the bars in words. No
@@ -106,16 +107,62 @@ variable or cache names appear.
 
 ### Third Notes line: treatment effects and stars
 
-`notes_of(line1, line2, line3)` takes an explicit third line (no default). The numbers
-and stars are formatted in `02_render_figures.R` from saved aggregates; stars follow
-\* p < 0.10, \*\* p < 0.05, \*\*\* p < 0.01 (strict) applied to the saved p.
+`notes_of(line1, line2, line3)` takes an explicit third line (no default). The numbers,
+stars and percentages are formatted in `02_render_figures.R` from the full-precision
+saved rows (selected columns copied as text) in `data/caption_effects.json`, never from
+rounded caption numbers. Stars follow \* p < 0.10, \*\* p < 0.05, \*\*\* p < 0.01
+(strict) applied to the saved p (`stars_of()`); this convention is internal and
+documented here, not printed on the charts.
 
-| Figure | Line 3 (exact) | Source of number and stars |
+| Figure | Line 3 (exact) | Source of number, stars and percentage |
 |---|---|---|
-| Wage | Male graduates earn €39.7\*\*\* more per month on average after the first offer. | Overall ATT **39.731\*\*\*** (SE 13.047) as **printed** on the archived `data/original_wage.png` (sha256 `9bac3c2192b6`). No exact p was archived and none is computed; the stars are the printed ones. The producer (`5_Package` @ `96eec10`, `08_survey_outcomes.R`) used `did::aggte(type = "simple")`, p = 2·pnorm(−\|att/se\|) and normal cutoffs; the normal approximation from the printed ATT/SE (≈ 0.0023) only confirms \*\*\*. Nothing is recovered from pixels. |
-| Crime gap | The youth–adult crime-rate gap falls by 17.1\*\* crimes per 1,000 on average after adoption. | `data/crime_gap_aggregate.json` (unchanged; hash in `provenance.json`): post-adoption average ATT −17.061, SE 6.697, p 0.011. The source table prints p to 3 decimals and the estimate as −17.061\*\*; any unrounded p in [0.0105, 0.0115) gives \*\*. |
-| Pooled UP | Pooled post-policy estimate (2019–2024): +0.43\*\* pupils per pupil needed to meet the quota. | Static DiD row, est 0.429636, SE 0.180803, p 0.0181 (n_obs 3609, 311 schools). |
-| By type | Pooled 2019–2024 gains: +1.16\*\*\* pupils in public schools; +0.41\* in charter schools. | Static DiD rows: Public est 1.158905, SE 0.162757, p 3.6e−11 (158 schools); Charter est 0.411901, SE 0.231202, p 0.0768 (153 schools). |
+| Wage | Male graduates earn €39.7\*\*\* more per month on average after the first offer (+3.9% of the €1,030 control mean). | Saved row `var = wage_cont`, `arm = quality` (unique) of `survey_results_full.csv` (below): `csdid` 39.7308163126299, `csdid_se` 13.0468925248729, `csdid_p` 0.00232500785676238, `ctrl_mean` 1030.05280139392, `n_obs` 13570, `G` 454. Stars from the unadjusted `csdid_p` (as on the original plot), not the BH-adjusted p. Percent = 100 × csdid / ctrl_mean = 3.8571630754 → 3.9%. |
+| Crime gap | The estimated average reduction is 17.1\*\* crimes per 1,000, equivalent to 37.0% of the full-panel mean gap (46.2 per 1,000). | Main ATT row of `tab_main_ddd.csv` (below): est −17.061055386083886, se 6.696800686456225, p 0.010845348670942416, pretrend_p 0.83721. Denominator: descriptive full input panel mean gap 46.17016395309781 from `mfx_levels_ddd.csv`. Percent = 100 × \|ATT\| / mean gap = 36.95255534 → 37.0%. |
+| Pooled UP | Pooled 2019–2024 effect: +0.43\*\* pupils per pupil needed to meet the quota, equivalent to 43.0% of the initial quota gap. | Static DiD row, est 0.429636253553721, SE 0.180803, p 0.0181 (n_obs 3609, 311 schools). Percent = 100 × est. |
+| By type | Pooled 2019–2024 estimates: public +1.16\*\*\* pupils (115.9% of the initial quota gap); charter +0.41\* pupils (41.2%). | Static DiD rows: Public est 1.15890515075212, SE 0.162757, p 3.6e−11 (158 schools); Charter est 0.411901490733232, SE 0.231202, p 0.0768 (153 schools). Percent = 100 × est. |
+
+**Wage source.** `Vocational/5_Package/2_Out/_baseline_tables_2026-07-30/2_did_takeup/08_survey_outcomes/survey_results_full.csv`
+(sha256 `2c8da53d23c1eba0b3314d754b9a4aed880d727f0f112fdd72b1db1ba4b343a0`). The
+selected row's caption-input columns (`var`, `label`, `arm`, `csdid`, `csdid_se`, `csdid_p`,
+`ctrl_mean`, `n_obs`, `G`) are copied as text into `caption_effects.json`; the source
+sha256 records the full file. The exact overall p is
+therefore now recovered; the earlier statement that no exact wage p was archived is
+retired. `csdid` and `csdid_se` round exactly to the ATT 39.731 and SE 13.047 printed on
+the original raster (`data/original_wage.png`, sha256 `9bac3c2192b6`), which stay in the
+JSON (`original_printed`) as a consistency anchor; its stars \*\*\* equal
+`stars_of(csdid_p)`. The event-study graph itself is unchanged (still the graphical
+reconstruction described below). Denominator: the saved `ctrl_mean` (EUR per month),
+displayed rounded as €1,030.
+
+**Crime source and denominator.** Numerator: the unique row `estimator = "csdid
+(Callaway-Sant'Anna, never-treated)"`, `treatment = "binary adoption"` of
+`.../_baseline_tables_2026-07-30/4_ddd/02_main_did/tab_main_ddd.csv` (sha256
+`7c2c1839ab6b02d3f1b4bb5b89ff3e54cd09bb7016042e46efe459a0532b35bd`). It rounds to the
+unchanged `data/crime_gap_aggregate.json` (−17.061, 6.697, 0.011, 0.837); the plotting
+CSV, the aggregate JSON and `provenance.json` are not edited. Stars \*\* from the exact
+p 0.0108. Denominator: `.../4_ddd/20_nonlinearity/mfx_levels_ddd.csv` (sha256
+`155ce440e76f29c33572efb7b9e09a23fe2265dd7603c1ac0a16f80b1dc9464d`); all six saved rows
+give mean gap = 100 × mfx / pct_of_mean = 46.17016395309781 (agreement < 1e-10); only
+the selected columns `dose`, `mfx`, `pct_of_mean` are copied as text into the JSON. The
+historical producer `5_Package/1_Codes/3_Analysis/19_ddd_grid/03_nonlinearity_ddd.R`
+computes `gap_mean <- weighted.mean(d$gap, d$w_unit)` and `pct_of_mean = 100 * mfx /
+gap_mean`. The main DiD (`02`) and the nonlinearity script (`03`) build the same input
+panel: `build_gap_panel2(16, 25, 36, 45)`, deduplicated populations, weights `w_unit`,
+2008–2017, 326 tracts, 3,192 rows, 186 adopters (logs match the main ATT). The
+numerator is the main ATT, never a nonlinear mfx. **Interpretation:** 46.2 is a
+*descriptive* mean of the youth–adult gap over the full input panel. It is not a
+control, untreated or pre-period mean, and not the exact internal estimation-sample mean
+(`did` may drop unbalanced units internally; only the shared input panel is verified).
+The 37.0% is a scale benchmark, hence the caption wording "full-panel mean gap"; it is
+not a causal 37% decline relative to any counterfactual group or period.
+
+**Enrollment percentages.** Percent = 100 × each saved static DiD β (0.429636253553721
+→ 43.0%; 1.15890515075212 → 115.9%; 0.411901490733232 → 41.2%). The dose D is the
+corrected reserved-seat quota minus the baseline 2016–2018 mean vulnerable enrollment,
+and β is pupils per pupil of D, so β·D / D = β: the percentage scales the estimated
+response to the *initial quota gap*. It is not a percent change in enrollment (never
+β / pre_mean), not observed quota closure, and it does not imply that every public
+school exceeds its quota.
 
 Enrollment sources (read-only, same 2026-07-07 snapshot folder as the dynamic points,
 `.../06_JP_continuous_did/published_quotas/`): `01_static_did_number.csv` (sha256
@@ -151,14 +198,19 @@ Plain-language readings (confirmed against the producers, no re-estimation):
   below quota", an accepted plain-language approximation.
 
 `03_verify.R` checks the exact text of all three lines, that each figure has exactly
-three lines with "Notes:" only on line 1, that each rendered line fits (line 3 widths:
-wage 7.50, crime 8.36, pooled 8.51, by type 8.09 in < 10.35 in), and that no other
+three lines with "Notes:" only on line 1, that no line prints a p-threshold legend (and
+the renderer has no `STARS_LEGEND`), that each rendered line fits (line 3 widths at
+12 pt: wage 7.71, crime 8.36, pooled 8.12, by type 7.89 in ≤ 10.35 in), and that no other
 technical statistic appears. Section 7 checks `caption_effects.json` (recorded hashes
-and filters; when Dropbox is reachable, source hashes and verbatim unique rows, the
-`Both` = pooled identity and the crime table's printed −17.061\*\*), that the printed
-numbers and stars follow from the saved estimates and unrounded p with an
-independently written star rule (including the strict 0.01/0.05/0.10 boundaries), the
-wage printed stars (no exact p), and that no stars sit on the dynamic means.
+and filters; when Dropbox is reachable, source hashes, verbatim unique rows for the
+static DiD and crime ATT sources and exact selected-column projections (field names
+checked) for the wage and mfx rows, the `Both` = pooled identity and the crime table's
+printed −17.061\*\*), that the printed numbers, stars and percentages follow from the
+full-precision saved rows and unrounded p with an independently written star rule
+(including the strict 0.01/0.05/0.10 boundaries), that the wage row rounds to the
+printed original ATT/SE with matching stars, the crime full-panel mean-gap ratios, the
+quota percentages as 100 × β (not β / pre_mean), and that no stars sit on the dynamic
+means.
 
 ### Axis titles
 
@@ -186,8 +238,9 @@ them and `03_verify.R` (section 6 and the wage checks) keeps testing that.
   the source.
 * Wage: Callaway and Sant'Anna for binary dual-offer adoption, not-yet-treated controls,
   standard errors clustered at the school level, monthly wage in EUR coded at bracket
-  midpoints; printed overall ATT 39.731*** (SE 13.047); deeper pre-periods come from
-  later adopters.
+  midpoints; printed overall ATT 39.731*** (SE 13.047), equal after rounding to the saved
+  row (csdid 39.7308, SE 13.0469, p 0.0023; see *Wage source*); deeper pre-periods come
+  from later adopters.
 
 After rendering, copy each of the four PNGs to `static/img/` and `public/img/` under
 the same filename. `03_verify.R` checks that the sha256 is equal across the three
@@ -342,8 +395,11 @@ labels, limits, reference lines, hollow markers and source hash.
 
 Background: the original shows the C&S event study for `wage_cont` (binary dual-offer
 adoption, not-yet-treated controls, school cluster, e = −6..6, overall ATT 39.731,
-SE 13.047). The only saved number is the overall ATT, 39.7308, in
-`2_Out/_baseline_tables_2026-07-30/1_did_offer/08_survey_outcomes/survey_results_full.csv`
-(which reports SE 12.674, not 13.047). Redrawing it from data would require writing
+SE 13.047). The only saved numbers are the overall aggregates, not the event-time
+coefficients: `2_Out/_baseline_tables_2026-07-30/2_did_takeup/08_survey_outcomes/survey_results_full.csv`
+holds the overall ATT 39.7308 with SE 13.0469 and exact p 0.0023, which match the printed
+ATT/SE and are used for Notes line 3 (see *Wage source*). The sibling
+`1_did_offer/08_survey_outcomes/survey_results_full.csv` reports the same ATT with SE 12.674
+and is not used. Redrawing it from data would require writing
 `cs$dyn` to CSV in a re-run on the authorised machine and re-confirming those estimates
 against the original before replacing the image.

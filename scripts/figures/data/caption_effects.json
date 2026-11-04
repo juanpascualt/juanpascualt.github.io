@@ -1,5 +1,5 @@
 {
-  "note": "Derived caption inputs for the third Notes line. Enrollment rows are copied verbatim (as text) from the saved static DiD tables; nothing is re-estimated. Stars: * p<0.10, ** p<0.05, *** p<0.01 from the saved p. These are pooled static DiD estimates, NOT arithmetic means of the dynamic event-study coefficients.",
+  "note": "Derived caption inputs for the third Notes line. Every number is copied verbatim (as text) from an existing saved output table; nothing is re-estimated. Stars (internal convention, documented here and in the README, not printed on the charts): * p<0.10, ** p<0.05, *** p<0.01 from the saved p. Percentages are formatted from these full-precision rows. Enrollment estimates are pooled static DiD estimates, NOT arithmetic means of the dynamic event-study coefficients.",
   "stars_convention": {
     "***": "p < 0.01",
     "**": "p < 0.05",
@@ -36,6 +36,10 @@
       "n_schools": "311",
       "pre_mean": "0.589946274735728",
       "kind": "number"
+    },
+    "percent_of_initial_quota_gap": {
+      "formula": "100 * est",
+      "meaning": "Scales the estimated response to the initial quota gap. Dose D = corrected reserved-seat quota minus baseline 2016-2018 mean vulnerable enrollment; est is pupils per pupil of D, so est * D / D = est. Not a percent change in enrollment (never est / pre_mean), not observed quota closure."
     }
   },
   "enrollment_by_type": {
@@ -51,7 +55,10 @@
       "outcome": "n_nese_b",
       "treatment": "did_nb",
       "sign_group": "UP",
-      "school_type": ["Public", "Charter"]
+      "school_type": [
+        "Public",
+        "Charter"
+      ]
     },
     "unit": "enrolled vulnerable (NESE-B, Infantil) pupils per pupil needed to reach the quota (unit of treat_nb)",
     "period": "post 2019-2024 vs pre 2013-2018",
@@ -89,20 +96,109 @@
         "pre_mean": "0.32477375283588",
         "kind": "number"
       }
+    },
+    "percent_of_initial_quota_gap": {
+      "formula": "100 * est",
+      "meaning": "Scales the estimated response to the initial quota gap. Dose D = corrected reserved-seat quota minus baseline 2016-2018 mean vulnerable enrollment; est is pupils per pupil of D, so est * D / D = est. Not a percent change in enrollment (never est / pre_mean), not observed quota closure."
     }
   },
   "crime": {
-    "source": "data/crime_gap_aggregate.json (see provenance.json: crime_gap_agg, anticipation_ddd.tex column 'Anticipation = 0')",
-    "quantity": "post_avg_att: Callaway-Sant'Anna post-adoption average ATT, crimes per 1,000",
-    "p_note": "Saved p is printed to 3 decimals (0.011) in the source table, which also prints -17.061**; any p in [0.0105, 0.0115) gives **."
+    "source": {
+      "path": "<Dropbox>/Vocational/5_Package/2_Out/_baseline_tables_2026-07-30/4_ddd/02_main_did/tab_main_ddd.csv",
+      "sha256": "7c2c1839ab6b02d3f1b4bb5b89ff3e54cd09bb7016042e46efe459a0532b35bd",
+      "bytes": 1001
+    },
+    "filters": {
+      "estimator": "csdid (Callaway-Sant'Anna, never-treated)",
+      "treatment": "binary adoption"
+    },
+    "quantity": "Callaway-Sant'Anna (never-treated) post-adoption average ATT on the youth (16-25) minus adult (36-45) crime-rate gap, crimes per 1,000",
+    "row": {
+      "estimator": "csdid (Callaway-Sant'Anna, never-treated)",
+      "treatment": "binary adoption",
+      "est": "-17.061055386083886",
+      "se": "6.696800686456225",
+      "p": "0.010845348670942416",
+      "pretrend_p": "0.83721"
+    },
+    "consistency": "Rounds to the unchanged data/crime_gap_aggregate.json (-17.061, 6.697, 0.011; provenance.json crime_gap_agg). Stars from the exact p in this row.",
+    "denominator": {
+      "source": {
+        "path": "<Dropbox>/Vocational/5_Package/2_Out/_baseline_tables_2026-07-30/4_ddd/20_nonlinearity/mfx_levels_ddd.csv",
+        "sha256": "155ce440e76f29c33572efb7b9e09a23fe2265dd7603c1ac0a16f80b1dc9464d",
+        "bytes": 1014
+      },
+      "rows": [
+        {
+          "dose": "0.083",
+          "mfx": "-56.07683095368811",
+          "pct_of_mean": "-121.45685904571194"
+        },
+        {
+          "dose": "0.172",
+          "mfx": "-46.90075850900159",
+          "pct_of_mean": "-101.5823954115605"
+        },
+        {
+          "dose": "0.324",
+          "mfx": "-31.229263996727973",
+          "pct_of_mean": "-67.63949122739173"
+        },
+        {
+          "dose": "0.386",
+          "mfx": "-24.836943866721633",
+          "pct_of_mean": "-53.79435925753342"
+        },
+        {
+          "dose": "0.532",
+          "mfx": "-9.784060979932498",
+          "pct_of_mean": "-21.191306554318682"
+        },
+        {
+          "dose": "1",
+          "mfx": "38.46764580785731",
+          "pct_of_mean": "83.31710896009564"
+        }
+      ],
+      "formula": "mean_gap = 100 * mfx / pct_of_mean (identical in all six rows within 1e-10); percent = 100 * abs(row.est) / mean_gap",
+      "mean_gap": "46.17016395309781",
+      "meaning": "DESCRIPTIVE full input panel mean of the youth-adult crime-rate gap (per 1,000), weighted by w_unit: historical producer 5_Package/1_Codes/3_Analysis/19_ddd_grid/03_nonlinearity_ddd.R computes gap_mean <- weighted.mean(d$gap, d$w_unit, na.rm = TRUE) and pct_of_mean = 100 * mfx / gap_mean. The main DiD (02) and the nonlinearity script (03) build the same input panel (build_gap_panel2(16, 25, 36, 45), deduplicated populations, weights w_unit; 2008-2017, 326 tracts, 3192 rows, 186 adopters; logs match the main ATT). Only the shared INPUT panel is verified; did may drop unbalanced units internally, so this is NOT the exact internal estimation-sample mean, and NOT a control, untreated or pre-period mean. The percentage is a descriptive scale benchmark, not a causal percent decline.",
+      "numerator_note": "The numerator is the main ATT (row.est), never a nonlinear mfx."
+    }
   },
   "wage": {
-    "source": "data/original_wage.png (sha256 9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de)",
-    "printed_att": "39.731",
-    "printed_stars": "***",
-    "printed_se": "13.047",
-    "p": null,
-    "p_note": "No exact p was archived. Stars are those printed on the original raster by the historical producer (Vocational/5_Package @ 96eec106c1d82821daaff2f0b8d0512d99d190fa, 1_Codes/3_Analysis/08_survey_outcomes.R: did::aggte(type = 'simple'), p = 2*pnorm(-abs(att/se)), normal cutoffs). Not recovered from pixels.",
+    "source": {
+      "path": "<Dropbox>/Vocational/5_Package/2_Out/_baseline_tables_2026-07-30/2_did_takeup/08_survey_outcomes/survey_results_full.csv",
+      "sha256": "2c8da53d23c1eba0b3314d754b9a4aed880d727f0f112fdd72b1db1ba4b343a0",
+      "bytes": 3455
+    },
+    "filters": {
+      "var": "wage_cont",
+      "arm": "quality"
+    },
+    "row": {
+      "var": "wage_cont",
+      "label": "Monthly Wage (EUR, midpoints)",
+      "arm": "quality",
+      "csdid": "39.7308163126299",
+      "csdid_se": "13.0468925248729",
+      "csdid_p": "0.00232500785676238",
+      "ctrl_mean": "1030.05280139392",
+      "n_obs": "13570",
+      "G": "454"
+    },
+    "stars_from": "csdid_p (unadjusted p, as used for the stars on the original plot)",
+    "percent_of_control_mean": {
+      "formula": "100 * csdid / ctrl_mean",
+      "meaning": "ATT relative to the saved control mean ctrl_mean (EUR per month)"
+    },
+    "original_printed": {
+      "source": "data/original_wage.png (sha256 9bac3c2192b637dbf538852cc2854e9446b44a1e2d8c86de58ce10d9d3eb98de)",
+      "printed_att": "39.731",
+      "printed_stars": "***",
+      "printed_se": "13.047",
+      "note": "Consistency anchor: csdid and csdid_se round to the printed ATT/SE (3 decimals). The event-study graph itself stays a graphical reconstruction of this raster."
+    },
     "unit": "EUR per month, male graduates, after the first offer"
   }
 }

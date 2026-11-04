@@ -21,8 +21,8 @@
 # "Monthly Earnings"; no ": Event Study" suffix, no estimator). The public Notes
 # are plain-language explanations for readers who have not read the paper:
 # exactly three explicit lines per figure (two figure-specific lines plus a
-# third line with the aggregate treatment effect and significance stars, from
-# saved aggregates; see effect_line section); other technical statistics (SE,
+# third line with the aggregate treatment effect, its significance stars and a
+# percent magnitude, from saved output rows; see the third-line section); other technical statistics (SE,
 # p-values, school counts, estimators) are archived in the README, not printed. Point sizes are a web
 # adaptation, not a copy of the PDF sizes (see README):
 #   serif (Times); title 24 pt regular centred (word-wrapped at TITLE_WIDTH = 70
@@ -103,14 +103,16 @@ theme_paper_serif <- function() {
     )
 }
 
-# Third Notes line: the aggregate treatment effect with stars, formatted from
-# saved aggregates (crime: data/crime_gap_aggregate.json; enrollment: pooled
-# static DiD rows in data/caption_effects.json; wage: printed original ATT and
-# stars, also recorded there). Stars come from the saved p (never from rounded
-# estimates, arithmetic means of dynamic coefficients, or combined point SEs).
+# Third Notes line: the aggregate treatment effect with stars and a percent
+# magnitude, formatted from the full-precision saved rows copied verbatim into
+# data/caption_effects.json (wage: survey_results_full.csv; crime:
+# tab_main_ddd.csv ATT over the full-panel mean gap from mfx_levels_ddd.csv;
+# enrollment: pooled static DiD rows). Stars come from the saved p (never from
+# rounded estimates, arithmetic means of dynamic coefficients, or combined point
+# SEs). Star convention (internal and README only; no p-threshold legend is
+# printed on the charts): * p<0.10, ** p<0.05, *** p<0.01.
 # (Bars, not described on the charts: thin = saved 95% bounds verbatim; thick =
 # estimate +/- qnorm(0.95) * saved SE.)
-STARS_LEGEND <- "* p<0.10, ** p<0.05, *** p<0.01."
 stars_of <- function(p) {
   stopifnot(is.numeric(p), length(p) == 1L, is.finite(p), p >= 0, p <= 1)
   if (p < 0.01) "***" else if (p < 0.05) "**" else if (p < 0.10) "*" else ""
@@ -118,7 +120,16 @@ stars_of <- function(p) {
 fmt_eff <- function(row, digits = 2, sign = TRUE)   # row: verbatim text fields est, pval
   paste0(sprintf(paste0(if (sign) "%+." else "%.", digits, "f"), as.numeric(row$est)),
          stars_of(as.numeric(row$pval)))
+fmt_pct <- function(x) sprintf("%.1f%%", x)          # x already in percent, full precision
 effects <- fromJSON(file.path(data_dir, "caption_effects.json"), simplifyVector = FALSE)
+# Crime: main ATT row and the descriptive full input panel mean gap
+# (mean_gap = 100 * mfx / pct_of_mean, identical in all six saved rows).
+crime_row <- effects$crime$row
+crime_mean_gap <- vapply(effects$crime$denominator$rows,
+                         function(r) 100 * as.numeric(r$mfx) / as.numeric(r$pct_of_mean), 1)
+stopifnot(length(crime_mean_gap) == 6L, diff(range(crime_mean_gap)) < 1e-10)
+crime_mean_gap <- crime_mean_gap[[1]]
+wage_row <- effects$wage$row
 # Rendered width (in) of each string at `size` pt serif, measured on a temporary
 # ragg device (the device used by save_fig); the caller's device is restored.
 text_width_in <- function(s, size) {
@@ -198,15 +209,20 @@ gap <- read.csv(file.path(data_dir, "crime_gap_es.csv"), na.strings = "NA")
 agg <- fromJSON(file.path(data_dir, "crime_gap_aggregate.json"))
 gap <- add_ci(gap, "att", "ci_lower", "ci_upper")
 # Public Notes (plain language). Line 3 prints the post-adoption average ATT
-# with stars from its saved p (0.011, 3 decimals in the source table; any value
-# in [0.0105, 0.0115) gives **). The pre-trend test is archived in the README.
+# (exact saved row in tab_main_ddd.csv; rounds to crime_gap_aggregate.json) with
+# stars from its exact saved p (0.0108), and |ATT| as a percent of the
+# DESCRIPTIVE full input panel mean gap (a scale benchmark, not a causal percent
+# decline and not a control/pre-period/estimation-sample mean). The pre-trend
+# test is archived in the README.
 gap_note <- c(
   "Dots show the estimated effect of company-based vocational training on the crime-rate gap between young people (16\u201325) and adults (36\u201345).",
   "Year 0 marks local adoption. Values below zero indicate a smaller gap than in year -1, in crimes per 1,000 residents.",
-  paste0("The youth\u2013adult crime-rate gap falls by ",
-         sprintf("%.1f", -as.numeric(agg$post_avg_att)), stars_of(as.numeric(agg$post_avg_p)),
-         " crimes per 1,000 on average after adoption. ", STARS_LEGEND))
-stopifnot(as.numeric(agg$post_avg_att) < 0)   # "falls by" requires a negative ATT
+  paste0("The estimated average reduction is ",
+         sprintf("%.1f", -as.numeric(crime_row$est)), stars_of(as.numeric(crime_row$p)),
+         " crimes per 1,000, equivalent to ",
+         fmt_pct(100 * abs(as.numeric(crime_row$est)) / crime_mean_gap),
+         " of the full-panel mean gap (", sprintf("%.1f", crime_mean_gap), " per 1,000)."))
+stopifnot(as.numeric(crime_row$est) < 0)   # "reduction" requires a negative ATT
 p_gap <- plot_single(
   gap, x = "event_time", onset_x = -0.5,
   title = "Youth\u2013Adult Crime Gap",
@@ -234,9 +250,13 @@ up_note <- c(
   "Barcelona reserves preschool seats to reduce school segregation. Dots show the estimated change in vulnerable children's enrollment.",
   UP_LINE2,
   # Pooled static DiD (treat_nb x post, 2019-2024 vs 2013-2018), saved row; not
-  # an average of the dynamic points drawn.
-  paste0("Pooled post-policy estimate (2019\u20132024): ", fmt_eff(effects$enrollment_pooled$row),
-         " pupils per pupil needed to meet the quota. ", STARS_LEGEND))
+  # an average of the dynamic points drawn. Percent = 100 * beta: beta is pupils
+  # per pupil of the dose D (initial quota gap), so beta * D / D = beta. Not a
+  # percent change in enrollment (never beta / pre_mean).
+  paste0("Pooled 2019\u20132024 effect: ", fmt_eff(effects$enrollment_pooled$row),
+         " pupils per pupil needed to meet the quota, equivalent to ",
+         fmt_pct(100 * as.numeric(effects$enrollment_pooled$row$est)),
+         " of the initial quota gap."))
 p_up <- plot_single(
   up, x = "year", onset_x = 2018.5, hollow = !up_sig,
   title = "Vulnerable Student Enrollment",
@@ -254,15 +274,17 @@ n_by <- tapply(bt$n_schools, bt$school_type, `[`, 1)
 avg <- function(t, yrs) mean(bt$est[bt$school_type == t & bt$year %in% yrs])
 pre_yrs <- 2013:2018; post_yrs <- 2019:2024   # reproduces the original printed averages
 # Public Notes (plain language). Line 3 prints the pooled static DiD by school
-# type (saved rows, with stars from their saved p). The original printed
+# type (saved rows, with stars from their saved p) and 100 * beta as a percent
+# of the initial quota gap (as for the pooled figure). The original printed
 # pre/post averages of the dynamic points (avg(); no p-value exists for them)
 # and school counts (n_by) are archived in the README and checked in 03_verify.R.
 bt_note <- c(
   "Dots show how Barcelona's seat quotas affect vulnerable children's enrollment in public and publicly funded private (charter) preschools.",
   UP_LINE2,
-  paste0("Pooled 2019\u20132024 gains: ", fmt_eff(effects$enrollment_by_type$rows$Public),
-         " pupils in public schools; ", fmt_eff(effects$enrollment_by_type$rows$Charter),
-         " in charter schools. ", STARS_LEGEND))
+  paste0("Pooled 2019\u20132024 estimates: public ", fmt_eff(effects$enrollment_by_type$rows$Public),
+         " pupils (", fmt_pct(100 * as.numeric(effects$enrollment_by_type$rows$Public$est)),
+         " of the initial quota gap); charter ", fmt_eff(effects$enrollment_by_type$rows$Charter),
+         " pupils (", fmt_pct(100 * as.numeric(effects$enrollment_by_type$rows$Charter$est)), ")."))
 pos <- position_dodge(width = 0.4)
 p_bt <- ggplot(bt, aes(x = year, y = est, group = school_type)) +
   ref_lines(2018.5) +
@@ -346,13 +368,18 @@ wage_onset_x <- sum(as.numeric(names(onset_prof)) * onset_prof) / sum(onset_prof
 # Public Notes (plain language): historical producer used male graduates
 # (sex == 1); first offer = first adoption of dual training by a program within
 # a school (cid x dgid x dgsup); reference e = -1. Line 3 prints the overall
-# ATT 39.731*** as printed on the original raster (stars as printed; no exact p
-# was archived, so none is computed); its SE 13.047 is archived in the README.
+# ATT from the exact saved row (survey_results_full.csv, wage_cont / quality:
+# csdid 39.7308..., which rounds to the printed 39.731) with stars from its
+# unadjusted csdid_p (0.0023; not csdid_p_bh), and the ATT as a percent of the
+# saved control mean ctrl_mean (EUR 1,030). SE 13.047 is archived in the README.
 wage_note <- c(
   "Dots show the estimated effect of offering company-based vocational training in a school program on male graduates' monthly earnings, in euros.",
   "Year 0 marks the first offer. Values are relative to the year before that offer; positive values indicate higher earnings.",
-  paste0("Male graduates earn \u20ac", sprintf("%.1f", as.numeric(effects$wage$printed_att)),
-         effects$wage$printed_stars, " more per month on average after the first offer. ", STARS_LEGEND))
+  paste0("Male graduates earn \u20ac", sprintf("%.1f", as.numeric(wage_row$csdid)),
+         stars_of(as.numeric(wage_row$csdid_p)),
+         " more per month on average after the first offer (+",
+         fmt_pct(100 * as.numeric(wage_row$csdid) / as.numeric(wage_row$ctrl_mean)), " of the \u20ac",
+         formatC(as.numeric(wage_row$ctrl_mean), format = "d", big.mark = ","), " control mean)."))
 p_wage <- plot_single(
   wage, x = "px_x", onset_x = wage_onset_x, hollow = wage$hollow,
   breaks = unname(wx), x_labels = names(wx), x_limits = unname(wpanel[c("x0", "x1")]),

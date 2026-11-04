@@ -23,7 +23,8 @@
 #      shape/size/stroke, line widths, palette, and the exact title / axis /
 #      legend text. Explanatory Notes: exactly 3 explicit lines per figure
 #      (exact text; "Notes:" prefix on line 1; line 3 = treatment-effect
-#      reading with stars and the stars legend), each rendered line measured at
+#      reading with stars and a percent magnitude, no p-threshold legend), each
+#      rendered line measured at
 #      12 pt to fit the width; no other technical statistics (ATT, SE,
 #      p-values, school counts, estimator names) on the charts.
 #   5. All four PNGs are 3300 x 2250 at 300 dpi (11 x 7.5 in), differ from the
@@ -34,10 +35,14 @@
 #      in css/, static/css/ and public/css/style.css.
 #   6. Archived statistics (printed on the original figures, documented in the
 #      README, no longer on the charts) are reproduced from the saved data.
-#   7. Third-line effects: data/caption_effects.json rows equal the static DiD
-#      source rows verbatim and the sources keep their SHA-256 (when reachable);
-#      printed numbers/stars follow from the saved estimates and unrounded p
-#      (independent star rule, boundary cases); wage stars are the printed ones.
+#   7. Third-line effects: data/caption_effects.json rows equal the saved source
+#      rows verbatim (static DiD; crime tab_main_ddd.csv) or their selected-column
+#      projections as text (wage survey_results_full.csv; mfx_levels_ddd.csv;
+#      field names checked exactly) and the sources keep their
+#      SHA-256 (when reachable); printed numbers/stars/percentages follow from
+#      the full-precision saved rows and unrounded p (independent star rule,
+#      boundary cases); wage row rounds to the printed original ATT/SE; crime
+#      percent uses the descriptive full-panel mean gap; quota percent = 100 * beta.
 # Usage (repo root):  Rscript scripts/figures/03_verify.R
 suppressPackageStartupMessages({ library(ggplot2); library(jsonlite); library(digest) })
 
@@ -276,7 +281,7 @@ check(identical(sort(names(wage)), sort(c("event_time", "px_x", "est", "lo95", "
       "wage: plotted data are image coordinates only (centre, 95% and derived 90% endpoints; no coefficient/SE columns)")
 wcap <- notes_text(p_wage)
 check(!grepl("ATT|SE|39\\.73|13\\.047|14\\.329|18\\.721", wcap),
-      "wage: explanatory Notes print no 'ATT'/SE and no unrounded 39.731 (line 3 shows the printed ATT rounded, 39.7***); no substituted SE/ATT")
+      "wage: explanatory Notes print no 'ATT'/SE and no unrounded 39.731 (line 3 shows the saved ATT rounded, 39.7***); no substituted SE/ATT")
 
 # ---- 4. reference template and wording ----------------------------------------
 el <- function(p, k) calc_element(k, p$theme)
@@ -329,13 +334,13 @@ check(identical(sv("fill"), c("#0072B2", "#D55E00")) && identical(sv("colour"), 
 lab_is <- function(p, want) all(vapply(names(want), function(k)
   identical(if (k == "title") unwrap(p$labels[[k]]) else p$labels[[k]], want[[k]]), TRUE))
 # Explanatory Notes: exactly three explicit lines (line 1 starts "Notes: ";
-# line 3 = authored treatment-effect reading, exact text; numbers checked in 7).
-legend_stars <- "* p<0.10, ** p<0.05, *** p<0.01."
+# line 3 = authored treatment-effect reading with stars and percent magnitude,
+# exact text, no p-threshold legend; numbers checked in 7).
 line3 <- list(
-  wage = paste("Male graduates earn €39.7*** more per month on average after the first offer.", legend_stars),
-  gap  = paste("The youth–adult crime-rate gap falls by 17.1** crimes per 1,000 on average after adoption.", legend_stars),
-  up   = paste("Pooled post-policy estimate (2019–2024): +0.43** pupils per pupil needed to meet the quota.", legend_stars),
-  bt   = paste("Pooled 2019–2024 gains: +1.16*** pupils in public schools; +0.41* in charter schools.", legend_stars))
+  wage = "Male graduates earn €39.7*** more per month on average after the first offer (+3.9% of the €1,030 control mean).",
+  gap  = "The estimated average reduction is 17.1** crimes per 1,000, equivalent to 37.0% of the full-panel mean gap (46.2 per 1,000).",
+  up   = "Pooled 2019–2024 effect: +0.43** pupils per pupil needed to meet the quota, equivalent to 43.0% of the initial quota gap.",
+  bt   = "Pooled 2019–2024 estimates: public +1.16*** pupils (115.9% of the initial quota gap); charter +0.41* pupils (41.2%).")
 up_line2 <- paste("Values are per extra pupil needed to meet a school's quota, relative to 2018.",
                   "Only schools initially below quota are shown.")
 notes_are <- function(p, l1, l2, l3) identical(p$labels$caption, paste(paste("Notes:", l1), l2, l3, sep = "\n"))
@@ -396,14 +401,19 @@ cat(sprintf("  Notes line %d.%d: %.3f in\n", rep(seq_along(four), lengths(note_s
             sequence(lengths(note_split)), note_w), sep = "")
 check(NOTES_PT == 12 && all(lengths(note_split) == 3L) &&
         all(vapply(note_split, function(l) startsWith(l[1], "Notes: ") && !any(grepl("Notes:", l[-1])) &&
-                     endsWith(l[3], paste0(". ", legend_stars)) && !any(grepl("p<", l[1:2], fixed = TRUE)), TRUE)) &&
+                     endsWith(l[3], ".") && !any(grepl("p ?<|p-value", l)), TRUE)) &&
         identical(vapply(note_split, `[`, "", 3), unname(unlist(line3[c("gap", "up", "bt", "wage")]))) &&
-        !any(grepl("Bars show uncertainty", note_lines, fixed = TRUE)),
-      "Notes: 12 pt, exactly 3 explicit lines per figure; 'Notes:' prefix on line 1 only; line 3 = effect + stars legend (no bars line)")
+        !any(grepl("Bars show uncertainty", note_lines, fixed = TRUE)) &&
+        !any(grepl("STARS_LEGEND|p<0\\.", sub("#.*$", "", readLines(file.path(fig_here, "02_render_figures.R"), encoding = "UTF-8")))),
+      "Notes: 12 pt, exactly 3 explicit lines per figure; 'Notes:' prefix on line 1 only; line 3 = effect + stars + percent; no p-threshold legend on any line or in renderer code (no bars line)")
+w3 <- note_w[cumsum(lengths(note_split))]
+check(all(w3 <= TEXT_W_IN),
+      sprintf("Notes line 3 rendered widths at 12 pt (gap/up/bt/wage %s in) <= %.2f in",
+              paste(sprintf("%.2f", w3), collapse = "/"), TEXT_W_IN))
 check(all(note_w < avail_in) && all(note_w <= TEXT_W_IN),
       sprintf("Notes: every rendered 12 pt line fits (widest %.2f in <= %.2f in renderer width < %.2f in available; no right clipping, no 4th line)",
               max(note_w), TEXT_W_IN, avail_in))
-note_body <- sub(paste0(" ", legend_stars), "", note_lines, fixed = TRUE)   # drop the stars legend only
+note_body <- note_lines
 check(!any(grepl("ATT|\\bSE\\b|p ?[=<]|n ?= ?[0-9]|Callaway|Sant'Anna|NESE|pre-avg|post-avg|1\\.259|0\\.399|1\\.26|0\\.40\\b", note_body)),
       "Notes: no technical statistics (ATT, SE, p-values, school counts, estimator names) and no dynamic-mean numbers (1.259/0.399) on the charts")
 all_text <- unlist(lapply(four, function(p) unlist(p$labels)))
@@ -478,6 +488,9 @@ check(identical(c(sprintf("%.1f", as.numeric(agg$post_avg_att)), agg$post_avg_p,
 
 # ---- 7. third-line effects: caption_effects.json, sources, numbers, stars ------
 ce <- fromJSON(file.path(data_dir, "caption_effects.json"), simplifyVector = FALSE)
+# Projected wage / mfx rows expose exactly the caption-input columns (no extra fields).
+WAGE_COLS <- c("var", "label", "arm", "csdid", "csdid_se", "csdid_p", "ctrl_mean", "n_obs", "G")
+MFX_COLS <- c("dose", "mfx", "pct_of_mean")
 ce_rows <- list(pooled = ce$enrollment_pooled$row, Public = ce$enrollment_by_type$rows$Public,
                 Charter = ce$enrollment_by_type$rows$Charter)
 ce_src <- list(pooled = ce$enrollment_pooled$source, bytype = ce$enrollment_by_type$source)
@@ -507,6 +520,29 @@ if (all(file.exists(vapply(names(ce_src), ce_path, "")))) {
   b <- sel(s3, "Both"); cols <- c("est", "se", "pval", "n_obs", "n_schools", "pre_mean")
   check(nrow(b) == 1L && identical(unlist(b[1, cols]), unlist(sel(s1)[1, cols])),
         "by-type source 'Both' row equals the pooled 01 UP row (same model and sample)")
+  # Vocational baseline-archive rows (wage; crime ATT; crime full-panel mean gap).
+  VOC_SHA <- c(wage = "2c8da53d23c1eba0b3314d754b9a4aed880d727f0f112fdd72b1db1ba4b343a0",
+               crime = "7c2c1839ab6b02d3f1b4bb5b89ff3e54cd09bb7016042e46efe459a0532b35bd",
+               mfx = "155ce440e76f29c33572efb7b9e09a23fe2265dd7603c1ac0a16f80b1dc9464d")
+  voc_src <- list(wage = ce$wage$source, crime = ce$crime$source, mfx = ce$crime$denominator$source)
+  voc_path <- function(k) file.path(dropbox, sub("^<Dropbox>/", "", voc_src[[k]]$path))
+  if (all(file.exists(vapply(names(voc_src), voc_path, "")))) {
+    rdv <- function(k) read.csv(voc_path(k), colClasses = "character", na.strings = character(0), check.names = FALSE)
+    check(identical(unname(vapply(names(voc_src), function(k) digest(file = voc_path(k), algo = "sha256"), "")), unname(VOC_SHA)),
+          "wage/crime caption sources unchanged (survey_results_full.csv 2c8da53d23c1, tab_main_ddd.csv 7c2c1839ab6b, mfx_levels_ddd.csv 155ce440e76f)")
+    sw <- rdv("wage"); sw <- sw[sw$var == "wage_cont" & sw$arm == "quality", , drop = FALSE]
+    sc <- rdv("crime"); sc <- sc[sc$estimator == "csdid (Callaway-Sant'Anna, never-treated)" & sc$treatment == "binary adoption", , drop = FALSE]
+    sm <- rdv("mfx")
+    # Wage row and mfx rows are column PROJECTIONS of the source rows (only the
+    # caption inputs); the crime ATT row stays a full-row copy.
+    same_proj <- function(df, r, cols) nrow(df) == 1L && identical(names(r), cols) &&
+      all(cols %in% names(df)) && identical(unname(unlist(df[1, cols])), unname(unlist(r)))
+    check(same(sc, ce$crime$row) &&
+            same_proj(sw, ce$wage$row, WAGE_COLS) &&
+            nrow(sm) == length(ce$crime$denominator$rows) &&
+            all(vapply(seq_len(nrow(sm)), function(i) same_proj(sm[i, , drop = FALSE], ce$crime$denominator$rows[[i]], MFX_COLS), TRUE)),
+          "caption_effects.json crime ATT row (csdid never-treated) identical (as text, unique, full row) to source; wage row (wage_cont/quality) and six mfx rows equal (as text, in order) the source projections on the selected columns")
+  } else cat("SKIP wage/crime caption source re-check: Vocational baseline tables not reachable\n")
   tex <- paste(readLines(src_path("crime_gap_agg"), warn = FALSE), collapse = "\n")
   check(grepl("ATT (post average) & -17.061** (6.697)", tex, fixed = TRUE),
         "crime source table prints the post average as -17.061** (6.697)")
@@ -520,21 +556,60 @@ check(identical(vapply(bnd, stars_of, ""), star_ref(bnd)) &&
 pv <- vapply(ce_rows, function(r) as.numeric(r$pval), 1); es <- vapply(ce_rows, function(r) as.numeric(r$est), 1)
 check(identical(star_ref(pv), c("**", "***", "*")) &&
         identical(sprintf("%+.2f%s", es, star_ref(pv)), c("+0.43**", "+1.16***", "+0.41*")) &&
-        grepl("+0.43**", line3$up, fixed = TRUE) && grepl("+1.16*** pupils in public", line3$bt, fixed = TRUE) &&
-        grepl("+0.41* in charter", line3$bt, fixed = TRUE),
+        grepl("+0.43**", line3$up, fixed = TRUE) && grepl("public +1.16*** pupils", line3$bt, fixed = TRUE) &&
+        grepl("charter +0.41* pupils", line3$bt, fixed = TRUE),
       sprintf("enrollment: printed +0.43** / +1.16*** / +0.41* follow from saved est and unrounded p (%.4g, %.3g, %.4g)",
               pv[1], pv[2], pv[3]))
-gp <- as.numeric(agg$post_avg_p)
-check(identical(agg$post_avg_p, "0.011") && star_ref(0.0105) == "**" && star_ref(0.0115 - 1e-12) == "**" &&
-        identical(sprintf("%.1f%s", -as.numeric(agg$post_avg_att), star_ref(gp)), "17.1**") &&
-        grepl("falls by 17.1**", line3$gap, fixed = TRUE),
-      "crime: 17.1** from saved post average -17.061 and p 0.011 (any unrounded p in [0.0105, 0.0115) is **)")
-check(identical(ce$wage$printed_att, "39.731") && identical(ce$wage$printed_stars, "***") &&
-        identical(ce$wage$printed_se, "13.047") && is.null(ce$wage$p) &&
-        grepl(WAGE_SRC_SHA, ce$wage$source, fixed = TRUE) && grepl("€39.7***", line3$wage, fixed = TRUE),
-      "wage: €39.7*** = original printed ATT 39.731 with its printed stars (no exact p archived; none computed)")
-check(2 * pnorm(-39.731 / 13.047) < 0.01,
-      "wage: normal approximation from printed ATT/SE (~0.0023) is consistent with *** (consistency only, not the source of the stars)")
+# Quota percent = 100 * beta (beta is pupils per pupil of the initial quota gap
+# D, so beta * D / D = beta); explicitly not beta / pre_mean.
+pq <- 100 * es; pre <- vapply(ce_rows, function(r) as.numeric(r$pre_mean), 1)
+check(identical(sprintf("%.1f%%", pq), c("43.0%", "115.9%", "41.2%")) &&
+        grepl("43.0% of the initial quota gap", line3$up, fixed = TRUE) &&
+        grepl("+1.16*** pupils (115.9% of the initial quota gap)", line3$bt, fixed = TRUE) &&
+        grepl("+0.41* pupils (41.2%)", line3$bt, fixed = TRUE) &&
+        !any(vapply(sprintf("%.1f%%", 100 * es / pre), function(x) grepl(x, paste(line3, collapse = " "), fixed = TRUE), TRUE)) &&
+        !any(grepl("enrollment", c(line3$up, line3$bt), ignore.case = TRUE)),
+      sprintf("enrollment: percent = 100 x saved beta (%.6f / %.6f / %.6f) of the initial quota gap; not beta / pre_mean", pq[1], pq[2], pq[3]))
+check(identical(names(ce$wage$row), WAGE_COLS) &&
+        length(ce$crime$denominator$rows) == 6L &&
+        all(vapply(ce$crime$denominator$rows, function(r) identical(names(r), MFX_COLS), TRUE)) &&
+        all(vapply(c(ce$wage$row, unlist(ce$crime$denominator$rows, recursive = FALSE)), is.character, TRUE)),
+      "caption_effects.json: wage row has exactly var,label,arm,csdid,csdid_se,csdid_p,ctrl_mean,n_obs,G; each of 6 mfx rows exactly dose,mfx,pct_of_mean; values stored as text")
+cr <- ce$crime$row; cest <- as.numeric(cr$est); cpv <- as.numeric(cr$p)
+check(identical(c(cr$est, cr$se, cr$p, cr$pretrend_p),
+                c("-17.061055386083886", "6.696800686456225", "0.010845348670942416", "0.83721")) &&
+        identical(c(sprintf("%.3f", c(cest, as.numeric(cr$se), cpv)), sprintf("%.3f", as.numeric(cr$pretrend_p))),
+                  c(agg$post_avg_att, agg$post_avg_se, agg$post_avg_p, agg$pretest_wald_p)) &&
+        identical(sprintf("%.1f%s", -cest, star_ref(cpv)), "17.1**") &&
+        grepl("reduction is 17.1**", line3$gap, fixed = TRUE),
+      sprintf("crime: exact saved ATT row (-17.061055, p %.6f) rounds to unchanged crime_gap_aggregate.json (-17.061/6.697/0.011/0.837); 17.1**", cpv))
+mrows <- ce$crime$denominator$rows
+mg <- vapply(mrows, function(r) 100 * as.numeric(r$mfx) / as.numeric(r$pct_of_mean), 1)
+cpct <- 100 * abs(cest) / mg[1]
+check(length(mg) == 6L && max(abs(mg - mg[1])) < 1e-10 && abs(mg[1] - 46.17016395309781) < 1e-10 &&
+        isTRUE(all.equal(as.numeric(ce$crime$denominator$mean_gap), mg[1], tolerance = 1e-14)) &&
+        abs(cpct - 36.95255534) < 1e-8 && identical(sprintf("%.1f", c(cpct, mg[1])), c("37.0", "46.2")) &&
+        grepl("37.0% of the full-panel mean gap (46.2 per 1,000)", line3$gap, fixed = TRUE) &&
+        !any(vapply(mrows, function(r) grepl(sprintf("%.1f", abs(as.numeric(r$mfx))), line3$gap, fixed = TRUE), TRUE)),
+      sprintf("crime: full-panel mean gap 100 x mfx / pct_of_mean = %.10f in all 6 saved rows (spread %.1e); 100 x |main ATT| / mean = %.8f%% -> 37.0%% (descriptive benchmark; numerator is the main ATT, no mfx)",
+              mg[1], diff(range(mg)), cpct))
+wr <- ce$wage$row; wpv <- as.numeric(wr$csdid_p); wpct <- 100 * as.numeric(wr$csdid) / as.numeric(wr$ctrl_mean)
+check(identical(c(wr$var, wr$arm, wr$csdid, wr$csdid_se, wr$csdid_p, wr$ctrl_mean, wr$n_obs, wr$G),
+                c("wage_cont", "quality", "39.7308163126299", "13.0468925248729", "0.00232500785676238",
+                  "1030.05280139392", "13570", "454")) &&
+        is.null(ce$wage[["p", exact = TRUE]]) && is.null(ce$wage[["p_note", exact = TRUE]]),
+      "wage: exact saved row wage_cont/quality (csdid, csdid_se, csdid_p, ctrl_mean, n_obs 13570, G 454); no retired p: null field")
+op <- ce$wage$original_printed
+check(identical(c(op$printed_att, op$printed_stars, op$printed_se), c("39.731", "***", "13.047")) &&
+        grepl(WAGE_SRC_SHA, op$source, fixed = TRUE) &&
+        identical(sprintf("%.3f", as.numeric(c(wr$csdid, wr$csdid_se))), c(op$printed_att, op$printed_se)) &&
+        identical(star_ref(wpv), op$printed_stars) &&
+        grepl("€39.7***", line3$wage, fixed = TRUE),
+      sprintf("wage: saved csdid/csdid_se round to the original printed 39.731/13.047; *** from unadjusted csdid_p %.6f (= printed stars)", wpv))
+check(abs(wpct - 3.8571630754) < 1e-9 && identical(sprintf("%.1f", wpct), "3.9") &&
+        identical(formatC(as.numeric(wr$ctrl_mean), format = "d", big.mark = ","), "1,030") &&
+        grepl("(+3.9% of the €1,030 control mean)", line3$wage, fixed = TRUE),
+      sprintf("wage: 100 x csdid / ctrl_mean = %.10f%% -> +3.9%% of the EUR 1,030 control mean", wpct))
 check(!any(vapply(unlist(line3), function(l) grepl("1\\.259|0\\.399|1\\.26\\b|0\\.40\\b", l), TRUE)),
       "no stars on the dynamic-point means (1.259 / 0.399); enrollment line 3 uses pooled static DiD rows")
 
